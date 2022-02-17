@@ -349,30 +349,41 @@ void MainWindow::reset_track() {
 }
 
 /**
- * On entry we only care about the turn radius, turn acceleration and lambda.
+ *
+ * The trapezoidal turn has the robot transition from straight-line motion to
+ * a constant angular velocity arc by linearly increasing the angular velocity
+ * over a fixed distance (lambda). During this portion of the turn, the robot
+ * path follows a clothoid curve.
+ *
+ * Some builders specify a time for a reference turn rather than a distance
+ * for this accelerating portion. that has some advantages but the time will
+ * change as the robot tries to run the turn faster. A little bit of calculation
+ * reveals that the distance always comes out the same so it is just easier
+ * to specify a distance rather than a time and the resulting turn path
+ * is easily made invariant with robot speed.
+ *
+ * After the constant arc, the robot 'unwinds' the turn with another linear
+ * change to angular velocity
+ *
+ * Four parameters are needed to define the turn:
+ *  - turn minimum radius - that is for the constant arc portion, in mm
+ *  - total turn angle - in degrees
+ *  - lambda - the robot transitions distance in mm
+ *  - speed - the robot forward velocity. Constant through the turn
+ *
  * Everything else is calculated from that.
  *
-   * turnAlpha is the maximum angular acceleration
-   *
-   * It derived in the code but can be calculated from the turn parameters:
-   *
-   * turnAlpha = turnOmega * turnSpeed / lambda;
-   *
-   * For empirical setups on the mouse, the calculated value of midArcLength
-   * could be a turn parameter to be turned for each turn to get the turn angle
-   * correct.
-   *
-   * For this turn type only, setting the lambda to be the same as
-   * the mouse radius causes the lateral and forward wheel accelerations
-   * to me the same
-   */
+ * For this turn type only, setting the lambda to be the same as
+ * the mouse radius causes the peak lateral and forward wheel accelerations
+ * to be about the same
+ */
 void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     // get some parameters from the UI
     // these are enough to fully define the turn for the robot
-    float turnRadius = (float) ui->radiusSpinBox->value();
-    float turnSpeed = (float) ui->turnSpeedSpinBox->value();
-    float turnAngle = (float) currentParams[turn].angle;
-    float lambda = (float) ui->lambdaSpinBox->value();
+    float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
+    float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
+    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
 
     // this is only needed for the simulator
     float startAngle = -currentParams[turn].startAngle;
@@ -382,6 +393,7 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     float turnOmega = DEGREES(turnSpeed / turnRadius);
 
     float transitionAngle = lambda * turnOmega / (turnSpeed * 2);
+    // angle turned during the constant omega phase
     float theta2 = turnAngle - 2 * transitionAngle;
     float midArcLength = turnSpeed * theta2 / turnOmega;
     float turnDistance = lambda + midArcLength + lambda;
@@ -389,7 +401,13 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     reset_track();
     RobotState robot_state(start_x, start_y, startAngle, turnSpeed, loopInterval);
 
-    while (robot_state.theta < endAngle - 0.01) {
+    // In the robot, take care that rounding errors do not preventit from
+    // exactly reaching the total angle as omega gets small. a residual error of
+    // 0.1 degrees is good enough to have the robot no more than 0.3mm off track
+    // after 180 mm of forward travel.
+    // You can carry residual errors through to the subsequent straight for
+    // correction if desired.
+    while (robot_state.theta < endAngle - 0.1) {
         if (robot_state.theta < startAngle + transitionAngle) {
             robot_state.omega = turnOmega * robot_state.distance / lambda;
             robot_state.phase = 1;
@@ -410,8 +428,11 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
 
 /***
  *
- * @brief MainWindow::calculateCubic
  * CUBIC PROFILE
+ *
+ * The cubic profile is completely different to the other types. It is not
+ * executed in phases and the robot describes a completely smooth path from
+ * start to finish.
  *
  * In the simulation, Dalpha is not needed because we read the turn length
  * directly from the UI.
@@ -451,10 +472,10 @@ void MainWindow::calculateCubic(float start_x, float start_y) {
     float startAngle = -currentParams[turn].startAngle;
     float endAngle = startAngle + turnAngle;
 
-    qreal length = ui->cubicLengthSpinBox->value();
+    float length = ui->cubicLengthSpinBox->value();
     float gamma = ui->cubicGammaSpinBox->value() / 100.0f;
     // k is the constant used to obtain the curvature of the path
-    qreal k = 6.0 * (turnAngle) / (length * length * length);
+    float k = 6.0f * (turnAngle) / (length * length * length);
 
     // prepare the local data
     reset_track();
@@ -466,11 +487,11 @@ void MainWindow::calculateCubic(float start_x, float start_y) {
     // TODO: is this a problem if there is wheel slip?
     while (robot_state.distance < length) {
         // calcualate the speed adjustment if used
-        qreal frac = robot_state.distance / length;
-        qreal q = 4.0 * gamma * (frac - 1) * frac + 1 + gamma;
+        float frac = robot_state.distance / length;
+        float q = 4.0 * gamma * (frac - 1) * frac + 1 + gamma;
         robot_state.speed = turnSpeed * q;
 
-        qreal omega = robot_state.speed * k * robot_state.distance * (length - robot_state.distance);
+        float omega = robot_state.speed * k * robot_state.distance * (length - robot_state.distance);
         robot_state.omega = omega;
         if (frac < 0.5) {
             robot_state.phase = 1;
@@ -485,35 +506,57 @@ void MainWindow::calculateCubic(float start_x, float start_y) {
 }
 
 /**
- * On entry we only care about the turn radius, turn acceleration and lambda.
+ *
+ * The quadratic turn has three sections, or phases, like the trapezoidal turn.
+ *
+ * The difference is that the change in angular velocity is calculated as a
+ * portion of a quadratic function. Like the trapezoidal version, the acceleration
+ * is over a fixed distance.
+ *
+ * It is not clear that there is any practical advantage to this profile although
+ * it does significantly ease the transition into and out of the constant radius
+ * phase.
+ *
+ * Some builders specify a time for a reference turn rather than a distance
+ * for this accelerating portion. that has some advantages but the time will
+ * change as the robot tries to run the turn faster. A little bit of calculation
+ * reveals that the distance always comes out the same so it is just easier
+ * to specify a distance rather than a time and the resulting turn path
+ * is easily made invariant with robot speed.
+ *
+ * After the constant arc, the robot 'unwinds' the turn with another quadratic
+ * change to angular velocity
+ *
+ * Four parameters are needed to define the turn:
+ *  - turn minimum radius - that is for the constant arc portion, in mm
+ *  - total turn angle - in degrees
+ *  - lambda - the robot transitions distance in mm
+ *  - speed - the robot forward velocity. Constant through the turn
+ *
  * Everything else is calculated from that.
  *
+ * For this turn type only, setting the lambda to be the same as
+ * the distance between the wheels causes the peak lateral and forward
+ * wheel accelerations to be about the same.
  */
-/*
-* turnAlpha is the maximum angular acceleration
-*
-* It derived in the code but can be calculated from the turn parameters:
-*
-* turnAlpha = turnOmega * turnSpeed / lambda;
-*/
-/*
-* For empirical setups on the mouse, the calculated value of midArcLength
-* could be a turn parameter to be turned for each turn to get the turn angle
-* correct.
-*/
 void MainWindow::calculateQuadratic(float start_x, float start_y) {
     // get some parameters from the UI
-    float turnRadius = ui->radiusSpinBox->value();
-    float turnAcceleration = ui->accelerationSpinBox->value();
-    float turnSpeed = ui->turnSpeedSpinBox->value();
-    float turnAngle = currentParams[turn].angle;
+    // these are enough to fully define the turn for the robot
+    float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
+    float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
+    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
+
+    // this is only needed for the simulator
     float startAngle = -currentParams[turn].startAngle;
+
+    // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
-    float lambda = ui->lambdaSpinBox->value();
     float turnOmega = DEGREES(turnSpeed / turnRadius);
 
     float transitionAngle = lambda * 2 * turnOmega / (turnSpeed * 3);
-    qreal theta2 = turnAngle - 2 * transitionAngle;
+    // angle turned during the constant omega phase
+    float theta2 = turnAngle - 2 * transitionAngle;
     float midArcLength = turnSpeed * theta2 / turnOmega;
     float turnDistance = lambda + midArcLength + lambda;
 
@@ -522,7 +565,12 @@ void MainWindow::calculateQuadratic(float start_x, float start_y) {
     g_track.add_record(robot_state);
 
 
-    // perform the turn;
+    // In the robot, take care that rounding errors do not preventit from
+    // exactly reaching the total angle as omega gets small. a residual error of
+    // 0.1 degrees is good enough to have the robot no more than 0.3mm off track
+    // after 180 mm of forward travel.
+    // You can carry residual errors through to the subsequent straight for
+    // correction if desired.
     while (robot_state.theta < endAngle - 0.01) {
         if (robot_state.theta < startAngle + transitionAngle) {
             float t = (robot_state.distance / lambda);
@@ -545,23 +593,56 @@ void MainWindow::calculateQuadratic(float start_x, float start_y) {
 }
 
 /**
- * @brief MainWindow::calculateSine
  *
- * NOTE: it turns out that the value for lambda which makes the linear and
- * centripetal acceleration equal is mouseRadius*pi/2
+ * Sinusoidal profile
  *
+ * Like the trapezoidal turn, this turn has tyhree phases. The central constant
+ * radius phase is the same but the transitions in and out have the angular
+ * velocity follow a portion of a sinusoidal profile.
+ *
+ * This profile is intended to keep the forces on the tyres within its traction
+ * circle at all times and provides a smooth transition as the robot reaches its
+ * maximum angular velocity.
+ *
+ * Some builders specify a time for a reference turn rather than a distance
+ * for this accelerating portion. that has some advantages but the time will
+ * change as the robot tries to run the turn faster. A little bit of calculation
+ * reveals that the distance always comes out the same so it is just easier
+ * to specify a distance rather than a time and the resulting turn path
+ * is easily made invariant with robot speed.
+ *
+ * After the constant arc, the robot 'unwinds' the turn with another sinusoidal
+ * change to angular velocity
+ *
+ * Four parameters are needed to define the turn:
+ *  - turn minimum radius - that is for the constant arc portion, in mm
+ *  - total turn angle - in degrees
+ *  - lambda - the robot transitions distance in mm
+ *  - speed - the robot forward velocity. Constant through the turn
+ *
+ * Everything else is calculated from that.
+ *
+ * For this turn type only, setting the lambda to be the same as
+ * the pi times mouse radius causes the peak lateral and forward wheel accelerations
+ * to be about the same
  */
 void MainWindow::calculateSine(float start_x, float start_y) {
     // get some parameters from the UI
-    float turnRadius = ui->radiusSpinBox->value();
-    float turnAcceleration = ui->accelerationSpinBox->value();
-    float turnSpeed = ui->turnSpeedSpinBox->value();
-    float turnAngle = currentParams[turn].angle;
+    // these are enough to fully define the turn for the robot
+    float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
+    float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
+    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
+
+    // this is only needed for the simulator
     float startAngle = -currentParams[turn].startAngle;
+
+    // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
-    float lambda = ui->lambdaSpinBox->value();
     float turnOmega = DEGREES(turnSpeed / turnRadius);
+
     float transitionAngle = 2 * lambda * turnOmega / PI / turnSpeed;
+    // angle turned during the constant omega phase
     float theta2 = turnAngle - 2 * transitionAngle;
     float midArcLength = turnSpeed * theta2 / turnOmega;
     float turnDistance = lambda + midArcLength + lambda;
@@ -571,6 +652,12 @@ void MainWindow::calculateSine(float start_x, float start_y) {
     RobotState robot_state(start_x, start_y, startAngle, turnSpeed, loopInterval);
     g_track.add_record(robot_state);
 
+    // In the robot, take care that rounding errors do not preventit from
+    // exactly reaching the total angle as omega gets small. a residual error of
+    // 0.1 degrees is good enough to have the robot no more than 0.3mm off track
+    // after 180 mm of forward travel.
+    // You can carry residual errors through to the subsequent straight for
+    // correction if desired.
     while (robot_state.theta < endAngle - 0.01) {
         if (robot_state.theta < (startAngle + transitionAngle)) {
             robot_state.omega = turnOmega * sin((PI / 2) * robot_state.distance / lambda);

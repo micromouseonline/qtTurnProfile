@@ -27,9 +27,7 @@ struct TurnParams {
     float length;  // for cubics
 };
 
-struct TrapParams : TurnParams {
-    qreal twisty;
-};
+
 // index inti the turn parameters table
 enum Turn_t {
     TURN_SS90F = 0, TURN_SS180, TURN_SD45, TURN_SD135, TURN_DS45, TURN_DS135, TURN_DD90, TURN_SS90E, TURN_TYPE_COUNT
@@ -39,7 +37,7 @@ enum Profile_t {
     PR_TRAPEZOID, PR_QUADRATIC, PR_SINUSOID, PR_CUBIC
 };
 
-const qreal loopInterval = 0.001;
+const float loopInterval = 0.001;
 
 extern TurnParams defaultParams[TURN_TYPE_COUNT];
 
