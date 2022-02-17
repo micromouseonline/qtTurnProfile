@@ -1,0 +1,9 @@
+build-qtTurnProfile*
+build
+*.pro.user
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+.idea
+cmake-build-debug*
+cmake-build-release*
+*~
