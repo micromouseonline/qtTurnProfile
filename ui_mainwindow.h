@@ -116,7 +116,7 @@ public:
         btnRefresh->setGeometry(QRect(745, 440, 65, 28));
 
         btnReset = new QPushButton(centralWidget);
-        btnReset->setObjectName(QStringLiteral("btnRefresh"));
+        btnReset->setObjectName(QStringLiteral("btnReset"));
         btnReset->setGeometry(QRect(745, 475, 65, 28));
 
         lblStartY = new QLabel(centralWidget);

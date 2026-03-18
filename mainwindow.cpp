@@ -113,15 +113,13 @@ void MainWindow::rePaint() {
     showTurnSummary();
     ui->progressSlider->setMinimum(0);
     ui->progressSlider->setMaximum(g_track.finish_index());
-    ui->accelerationSpinBox->blockSignals(true);
-    ui->accelerationSpinBox->setValue(int(turnAcceleration));
-    ui->accelerationSpinBox->blockSignals(false);
     drawBreadcrumbs();
     drawProfileGraph();
     int progress = ui->progressSlider->value();
     Pose pose = g_track.get_pose_at(progress);
     theMouse->setPose(pose);
     ui->lblPathView->setText(
+            QString::number(g_track.record_count(), 'f', 0).rightJustified(4, ' ') + "  " +
             QString::number(g_track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + "mm " +
             "(" + QString::number(pose.x(), 'f', 0).rightJustified(3, ' ') +
             "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') +
@@ -250,8 +248,8 @@ void MainWindow::drawMazeWalls() {
     mouseScene->addLine(90, 90, 90, 270, wallPen); // inner wall
 
     mouseScene->addLine(270, 90, 270, 91, postPen); // just a post on the right
-    mouseScene->addLine(90, 90, 91, 90, postPen); // center post
     mouseScene->addLine(269, -90, 270, -90, postPen); // top right post
+    mouseScene->addLine(90, 90, 91, 90, postPen); // center post
     mouseScene->addLine(90, -90, 91, -90, postPen); // top center post
 
     for (int i = 0; i < 5; i++) {
