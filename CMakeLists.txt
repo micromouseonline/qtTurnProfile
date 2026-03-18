@@ -67,7 +67,17 @@ elseif (APPLE)
             MACOSX_BUNDLE YES
             )
 elseif (UNIX)
-    # Nothing special required
+    # cmake --install <build-dir> --prefix ~/.local  -> copies to ~/.local/bin
+    install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION bin
+    )
+    # 'deploy' target: copy release binary directly to ~/.local/bin
+    add_custom_target(deploy
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/.local/bin"
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "$ENV{HOME}/.local/bin/${PROJECT_NAME}"
+            DEPENDS ${PROJECT_NAME}
+            COMMENT "Installing ${PROJECT_NAME} to ~/.local/bin"
+    )
 else ()
     message(SEND_ERROR "You are on an unsupported platform! (Not Win32, Mac OS X or Unix)")
 endif (WIN32)
@@ -102,5 +112,16 @@ if (WIN32)
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_PREFIX_PATH}/bin/Qt5Core.dll ${CMAKE_CURRENT_BINARY_DIR}
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_PREFIX_PATH}/bin/Qt5PrintSupport.dll ${CMAKE_CURRENT_BINARY_DIR}
         )
+    endif ()
+    # 'deploy' target: run windeployqt to bundle all required DLLs and plugins
+    find_program(WINDEPLOYQT windeployqt HINTS "${CMAKE_PREFIX_PATH}/bin")
+    if (WINDEPLOYQT)
+        add_custom_target(deploy
+                COMMAND ${WINDEPLOYQT} --release $<TARGET_FILE:${PROJECT_NAME}>
+                DEPENDS ${PROJECT_NAME}
+                COMMENT "Running windeployqt..."
+        )
+    else ()
+        message(WARNING "windeployqt not found - 'deploy' target unavailable")
     endif ()
 ENDIF ()
