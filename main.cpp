@@ -3,9 +3,7 @@
 #include "mainwindow.h"
 
 int main(int argc, char *argv[]) {
-  // get set up for highDPI scaling
-  qunsetenv("QT_AUTO_SCREEN_SCALE_FACTOR");
-  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  // high-DPI scaling is always enabled in Qt6
   QApplication a(argc, argv);
   a.setWindowIcon(QIcon(":/images/qtTurnProfiler.png"));
   QApplication::setQuitOnLastWindowClosed(true);

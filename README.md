@@ -1,12 +1,12 @@
 # qtTurnProfile
 
-A Qt5 application that simulates a number of different turn profile strategies for a micromouse.
+A Qt6 application that simulates a number of different turn profile strategies for a micromouse.
 
 ## Requirements
 
-- Qt 5.15.2 (the project expects Qt at the paths listed below)
-- CMake 3.5+
-- C++11 compiler
+- Qt 6 (Core, Gui, Widgets, PrintSupport). Tested with Qt 6.10.2
+- CMake 3.16+ (minimum required by Qt6)
+- C++17 compiler
 
 ## Building
 
@@ -17,21 +17,20 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
-### Qt installation paths
+### Locating Qt
 
-The CMakeLists.txt expects Qt at these default locations:
+On Linux the system Qt6 is found automatically (e.g. Debian/Ubuntu package
+`qt6-base-dev`).
 
-| Platform | Path |
-|----------|------|
-| Linux | `~/Qt/5.15.2/gcc_64` |
-| Windows | `C:/Qt/5.12.3/mingw73_64` |
-| macOS | `/Users/peterharrison/Qt5x/5.15.1/clang_64` |
-
-Override by setting `CMAKE_PREFIX_PATH` at configure time:
+For any other Qt6 install (Qt online installer, Windows, macOS) set
+`CMAKE_PREFIX_PATH` to the Qt kit directory at configure time:
 
 ```bash
-cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/5.15.2/gcc_64
+cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.y/gcc_64
 ```
+
+On Windows the Release build copies Qt DLLs from `${CMAKE_PREFIX_PATH}/bin`, so
+`CMAKE_PREFIX_PATH` must be set there.
 
 ## Deployment
 
@@ -55,7 +54,7 @@ cmake --install build --prefix ~/.local
 Ensure `~/.local/bin` is on your `PATH`.
 
 **Note:** For distribution to machines without Qt installed, consider packaging
-as an AppImage using `linuxdeployqt`.
+as an AppImage using `linuxdeploy` with its Qt plugin.
 
 ### Windows
 
