@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Turn Profile
+Comment=Simulate micromouse turn profiles
+Exec=@DEPLOY_BIN_DIR@/@PROJECT_NAME@
+Icon=@DEPLOY_ICON@
+Terminal=false
+Categories=Science;Math;
+StartupWMClass=@PROJECT_NAME@

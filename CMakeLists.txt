@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 project(qtTurnProfile)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -62,12 +62,20 @@ elseif (UNIX)
     install(TARGETS ${PROJECT_NAME}
             RUNTIME DESTINATION bin
     )
-    # 'deploy' target: copy release binary directly to ~/.local/bin
+    # 'deploy' target: copy binary to ~/.local/bin and add a menu entry
+    # (Science & Math) via ~/.local/share/applications/${PROJECT_NAME}.desktop
+    set(DEPLOY_BIN_DIR "$ENV{HOME}/.local/bin")
+    set(DEPLOY_DATA_DIR "$ENV{HOME}/.local/share/${PROJECT_NAME}")
+    set(DEPLOY_APPS_DIR "$ENV{HOME}/.local/share/applications")
+    set(DEPLOY_ICON "${DEPLOY_DATA_DIR}/${PROJECT_NAME}.png")
+    configure_file(qt_turn_profile.desktop.in ${PROJECT_NAME}.desktop @ONLY)
     add_custom_target(deploy
-            COMMAND ${CMAKE_COMMAND} -E make_directory "$ENV{HOME}/.local/bin"
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "$ENV{HOME}/.local/bin/${PROJECT_NAME}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_BIN_DIR}" "${DEPLOY_DATA_DIR}" "${DEPLOY_APPS_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "${DEPLOY_BIN_DIR}/${PROJECT_NAME}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/images/qtTurnProfiler.png" "${DEPLOY_ICON}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.desktop" "${DEPLOY_APPS_DIR}/${PROJECT_NAME}.desktop"
             DEPENDS ${PROJECT_NAME}
-            COMMENT "Installing ${PROJECT_NAME} to ~/.local/bin"
+            COMMENT "Installing ${PROJECT_NAME} to ~/.local/bin with menu entry"
     )
 else ()
     message(SEND_ERROR "You are on an unsupported platform! (Not Win32, Mac OS X or Unix)")
