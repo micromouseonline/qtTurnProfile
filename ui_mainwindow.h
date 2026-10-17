@@ -75,7 +75,6 @@ public:
     QRadioButton *rbSinusoid;
     QRadioButton *rbCubic;
     QGroupBox *gbTurnType;
-    QWidget *widget;
     QVBoxLayout *vlTurnTypes;
     QRadioButton *rbSS90F;
     QRadioButton *rbSS180;
@@ -296,39 +295,34 @@ public:
         gbTurnType = new QGroupBox(centralWidget);
         gbTurnType->setObjectName(QStringLiteral("gpTurnType"));
         gbTurnType->setGeometry(QRect(430, 440, 91, 190));
-        widget = new QWidget(gbTurnType);
-        widget->setObjectName(QStringLiteral("widget"));
-        widget->setGeometry(QRect(10, 20, 71, 160));
-        rbSS90F = new QRadioButton(widget);
+        rbSS90F = new QRadioButton(gbTurnType);
         rbSS90F->setObjectName(QStringLiteral("rbSS90F"));
         rbSS90F->setChecked(true);
 
-        rbSS180 = new QRadioButton(widget);
+        rbSS180 = new QRadioButton(gbTurnType);
         rbSS180->setObjectName(QStringLiteral("rbSS180"));
 
-        rbSS90E = new QRadioButton(widget);
+        rbSS90E = new QRadioButton(gbTurnType);
         rbSS90E->setObjectName(QStringLiteral("rbSS90E"));
 
-        rbSD45 = new QRadioButton(widget);
+        rbSD45 = new QRadioButton(gbTurnType);
         rbSD45->setObjectName(QStringLiteral("rbSD45"));
 
-        rbSD135 = new QRadioButton(widget);
+        rbSD135 = new QRadioButton(gbTurnType);
         rbSD135->setObjectName(QStringLiteral("rbSD135"));
 
-        rbDS45 = new QRadioButton(widget);
+        rbDS45 = new QRadioButton(gbTurnType);
         rbDS45->setObjectName(QStringLiteral("rbDS45"));
 
-        rbDS135 = new QRadioButton(widget);
+        rbDS135 = new QRadioButton(gbTurnType);
         rbDS135->setObjectName(QStringLiteral("rbDS135"));
 
-        rbDD90 = new QRadioButton(widget);
+        rbDD90 = new QRadioButton(gbTurnType);
         rbDD90->setObjectName(QStringLiteral("rbDD90"));
 
-        vlTurnTypes = new QVBoxLayout(widget);
-        vlTurnTypes->setSpacing(6);
-        vlTurnTypes->setContentsMargins(11, 11, 11, 11);
+        // layout directly on the group box so its size follows the style metrics
+        vlTurnTypes = new QVBoxLayout(gbTurnType);
         vlTurnTypes->setObjectName(QStringLiteral("verticalLayout_2"));
-        vlTurnTypes->setContentsMargins(0, 0, 0, 0);
         vlTurnTypes->addWidget(rbSS90F);
         vlTurnTypes->addWidget(rbSS180);
         vlTurnTypes->addWidget(rbSD45);
@@ -349,6 +343,8 @@ public:
         MainWindow->addToolBar(Qt::TopToolBarArea, mainToolBar);
 
         retranslateUi(MainWindow);
+        // grow the turn type box to fit its buttons; needs the title set first
+        gbTurnType->adjustSize();
         QMetaObject::connectSlotsByName(MainWindow);
     }  // setupUi
 
