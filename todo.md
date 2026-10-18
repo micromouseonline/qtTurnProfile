@@ -148,8 +148,8 @@ Commit after each verified step.
 
 ## 4. Build and portability
 
-- [ ] 4.1 Designated initializers in param tables need C++20 (MSVC rejects in C++17)
-  - Switch to C++20 or positional initializers.
+- [x] 4.1 Designated initializers in param tables need C++20 (MSVC rejects in C++17)
+  - Done: none remain (tables replaced in 3.4). Staying on C++17; `CMAKE_CXX_EXTENSIONS OFF` (strict `-std=c++17`). Clean `-Wpedantic` build.
 - [ ] 4.2 Raise `cmake_minimum_required` to 3.16 (removes deprecation warning, matches README).
 - [ ] 4.3 New-style `connect()` (function pointers) instead of `SIGNAL()/SLOT()` where manual connects remain.
 - [ ] 4.4 Include hygiene: `<algorithm>` not `"algorithm"`; drop `<QtGui>` umbrella include from header.
