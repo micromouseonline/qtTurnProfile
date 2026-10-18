@@ -93,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     mouseScene = new QGraphicsScene;
     mouseScene->setSceneRect(-100, -100, 380, 380);
     mouseScene->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
+    drawMazeWalls();
     mouseScene->addItem(theMouse);
 //    mouseScene->addItem(thePath);
     ui->pathView->setScene(mouseScene);
@@ -139,7 +140,6 @@ void MainWindow::showTurnSummary() const {
 
 void MainWindow::rePaint() {
     clampLambda();
-    drawMazeWalls();
     float turnAcceleration = ui->accelerationSpinBox->value();
     float start_x = ui->startXSpinBox->value();
     float start_y = -ui->startYSpinBox->value();
@@ -249,7 +249,17 @@ void MainWindow::drawProfileGraph() const {
     ui->customPlot->replot();
 }
 
-void MainWindow::drawBreadcrumbs() const {
+/**
+ * @brief Replace the breadcrumb markers with ones for the current track.
+ *
+ * Markers (every 5th record, coloured by phase) belong to one group so they
+ * can be removed together. The group is above the mouse, as before.
+ */
+void MainWindow::drawBreadcrumbs() {
+    delete breadcrumbs;  // also deletes the markers
+    breadcrumbs = new QGraphicsItemGroup;
+    breadcrumbs->setZValue(1);
+    mouseScene->addItem(breadcrumbs);
     QPen markerPen;
     markerPen.setWidthF(2.0);
     markerPen.setStyle(Qt::DotLine);
@@ -272,7 +282,7 @@ void MainWindow::drawBreadcrumbs() const {
                 break;
         }
         Pose pose = g_track.get_pose_at(i);// draw a breadcrumb
-        mouseScene->addEllipse(pose.x(), pose.y(), 1, 1, markerPen);
+        mouseScene->addEllipse(pose.x(), pose.y(), 1, 1, markerPen)->setParentItem(breadcrumbs);
     }
 }
 
@@ -282,6 +292,11 @@ void MainWindow::on_btnReset_clicked() {
     rePaint();
 }
 
+/**
+ * @brief Add the fixed maze walls, posts and grid lines to the scene.
+ *
+ * Called once from the constructor; these items never change.
+ */
 void MainWindow::drawMazeWalls() {
     QPen wallPen(QColor(255, 0, 0, 90));
     QPen postPen(QColor(255, 0, 0, 180));
@@ -298,9 +313,6 @@ void MainWindow::drawMazeWalls() {
     originPen.setWidthF(2.0);
     originPen.setStyle(Qt::DotLine);
 
-    mouseScene->removeItem(theMouse);
-
-    mouseScene->clear();
     mouseScene->addLine(-90, -90, -90, 270, wallPen); // left wall
     mouseScene->addLine(-90, -90, 90, -90, wallPen); // top left wall
     mouseScene->addLine(-90, 270, 270, 270, wallPen); // bottom wall
@@ -338,8 +350,6 @@ void MainWindow::drawMazeWalls() {
     mouseScene->addLine(-5, 0, 5, 0);
     mouseScene->addLine(0, -5, 0, 5);
     mouseScene->addEllipse(-5, -5, 10, 10);
-    mouseScene->addItem(theMouse);
-
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

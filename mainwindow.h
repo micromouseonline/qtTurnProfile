@@ -134,6 +134,7 @@ private:
     MouseItem *theMouse;
     PathItem *thePath;
     QGraphicsScene *mouseScene;
+    QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
 
     /// Working parameters for the current profile and turn type.
     TurnParams &params() { return profileParams[turnProfile][turn]; }
@@ -156,7 +157,7 @@ private:
 
     void showTurnSummary() const;
 
-    void drawBreadcrumbs() const;
+    void drawBreadcrumbs();
 
     void drawProfileGraph() const;
 

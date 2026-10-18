@@ -67,10 +67,11 @@ Commit after each verified step.
   - Result: turn 5-6 -> 1, profile 3 -> 1. Also fixed: start X/Y not updated when
     new turn had same offset but different base/angle (e.g. SS90E -> DS45).
 
-- [ ] 2.3 Draw maze walls once
+- [x] 2.3 Draw maze walls once
   - Walls/grid are static; stop clearing and rebuilding them each repaint.
     Keep breadcrumbs in a separate group that is cleared on recalculation.
   - Test: visual output unchanged; breadcrumbs update on parameter change.
+  - Result: renders pixel-identical (4 cases); 100 repaints 112 -> 94 ms.
 
 ## 3. Structure
 
