@@ -58,8 +58,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindow
     profileGroup->button(0)->click();
     ui->turnButtons[TURN_SS90F]->click();
     setWindowTitle(tr("Turn Render"));
-    // the window fits its contents and cannot be resized
-    layout()->setSizeConstraint(QLayout::SetFixedSize);
 }
 
 MainWindow::~MainWindow() {

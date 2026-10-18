@@ -30,8 +30,27 @@ QString tr(const char *text) {
 /// Turn type button labels, indexed by Turn_t
 const char *turnLabels[TURN_TYPE_COUNT] = {"SS90F", "SS180", "SD45", "SD135", "DS45", "DS135", "DD90", "SS90E"};
 
-/// Size of the graph and the path view, pixels
+/// Minimum size of the graph and the path view, pixels
 const int viewSize = 400;
+
+/**
+ * @brief Graphics view that scales its scene rectangle to fit, keeping the aspect ratio.
+ *
+ * Lets the path view grow with the window while always showing the whole maze.
+ */
+class FitView : public QGraphicsView {
+public:
+    FitView() {
+        setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    }
+
+protected:
+    void resizeEvent(QResizeEvent *event) override {
+        QGraphicsView::resizeEvent(event);
+        fitInView(sceneRect(), Qt::KeepAspectRatio);
+    }
+};
 
 /**
  * @brief Make a right aligned integer spinbox.
@@ -75,16 +94,18 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     lblDataView->setObjectName("lblDataView");
     customPlot = new QCustomPlot;
     customPlot->setObjectName("customPlot");
-    customPlot->setFixedSize(viewSize, viewSize);
+    customPlot->setMinimumSize(viewSize, viewSize);
+    customPlot->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // path view and slider, right
     lblPathView = new QLabel(tr("Mouse Path"));
     lblPathView->setObjectName("lblPathView");
     lblPathView->setFont(fixedFont);
     lblPathView->setStyleSheet("color: blue");
-    pathView = new QGraphicsView;
+    pathView = new FitView;
     pathView->setObjectName("pathView");
-    pathView->setFixedSize(viewSize, viewSize);
+    pathView->setMinimumSize(viewSize, viewSize);
+    pathView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     progressSlider = new QSlider(Qt::Horizontal);
     progressSlider->setObjectName("progressSlider");
 
@@ -94,6 +115,9 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     top->addWidget(lblPathView, 0, 1);
     top->addWidget(pathView, 1, 1);
     top->addWidget(progressSlider, 2, 1);
+    top->setColumnStretch(0, 1);  // graph and path view share extra width equally
+    top->setColumnStretch(1, 1);
+    top->setRowStretch(1, 1);
 
     // turn summary
     textEdit = new QTextEdit;
@@ -164,6 +188,6 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     bottom->addLayout(rightColumn);
 
     auto *main = new QVBoxLayout(central);
-    main->addLayout(top);
-    main->addLayout(bottom);
+    main->addLayout(top, 1);  // extra height goes to the graph and path view
+    main->addLayout(bottom, 0);
 }
