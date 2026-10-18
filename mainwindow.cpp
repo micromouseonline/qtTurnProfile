@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include <QButtonGroup>
 #include <cmath>
 #include "algorithm"
 #include "ui_mainwindow.h"
@@ -98,6 +99,25 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 //    mouseScene->addItem(thePath);
     ui->pathView->setScene(mouseScene);
     ui->pathView->setRenderHint(QPainter::Antialiasing);
+    // button ids are the Turn_t / Profile_t values
+    profileGroup = new QButtonGroup(this);
+    profileGroup->addButton(ui->rbTrapezoid, PR_TRAPEZOID);
+    profileGroup->addButton(ui->rbQuadratic, PR_QUADRATIC);
+    profileGroup->addButton(ui->rbSinusoid, PR_SINUSOID);
+    profileGroup->addButton(ui->rbCubic, PR_CUBIC);
+    connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
+
+    turnGroup = new QButtonGroup(this);
+    turnGroup->addButton(ui->rbSS90F, TURN_SS90F);
+    turnGroup->addButton(ui->rbSS180, TURN_SS180);
+    turnGroup->addButton(ui->rbSD45, TURN_SD45);
+    turnGroup->addButton(ui->rbSD135, TURN_SD135);
+    turnGroup->addButton(ui->rbDS45, TURN_DS45);
+    turnGroup->addButton(ui->rbDS135, TURN_DS135);
+    turnGroup->addButton(ui->rbDD90, TURN_DD90);
+    turnGroup->addButton(ui->rbSS90E, TURN_SS90E);
+    connect(turnGroup, &QButtonGroup::idClicked, this, &MainWindow::selectTurn);
+
     ui->rbSinusoid->click();
     ui->rbSS90F->click();
     setWindowTitle(tr("Turn Render"));
@@ -112,7 +132,6 @@ MainWindow::~MainWindow() {
 void MainWindow::on_btnRefresh_clicked() {
     rePaint();
 }
-
 
 void MainWindow::showTurnSummary() const {
     float max_alpha = g_track.get_max_alpha() / loopInterval;
@@ -492,7 +511,6 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     calculate_leadout(robot_state);
 }
 
-
 /***
  *
  * CUBIC PROFILE
@@ -631,7 +649,6 @@ void MainWindow::calculateQuadratic(float start_x, float start_y) {
     RobotState robot_state(start_x, start_y, startAngle, turnSpeed, loopInterval);
     g_track.add_record(robot_state);
 
-
     // In the robot, take care that rounding errors do not preventit from
     // exactly reaching the total angle as omega gets small. a residual error of
     // 0.1 degrees is good enough to have the robot no more than 0.3mm off track
@@ -757,7 +774,6 @@ void MainWindow::calculate_leadout(RobotState &robot_state, float distance) {// 
     }
 }
 
-
 void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
     float turnSpeed = arg1;
     params().speed = turnSpeed;
@@ -787,46 +803,6 @@ void MainWindow::updateStartPosition() {
     ui->startYSpinBox->blockSignals(true);
     ui->startYSpinBox->setValue(int(start_y));
     ui->startYSpinBox->blockSignals(false);
-}
-
-void MainWindow::on_rbTrapezoid_clicked() {
-    turnProfile = PR_TRAPEZOID;
-    setParams(turn);
-    ui->lambdaSpinBox->setEnabled(true);
-    ui->radiusSpinBox->setEnabled(true);
-    ui->cubicLengthSpinBox->setEnabled(false);
-    ui->cubicGammaSpinBox->setEnabled(false);
-    rePaint();
-}
-
-void MainWindow::on_rbQuadratic_clicked() {
-    turnProfile = PR_QUADRATIC;
-    setParams(turn);
-    ui->lambdaSpinBox->setEnabled(true);
-    ui->radiusSpinBox->setEnabled(true);
-    ui->cubicLengthSpinBox->setEnabled(false);
-    ui->cubicGammaSpinBox->setEnabled(false);
-    rePaint();
-}
-
-void MainWindow::on_rbSinusoid_clicked() {
-    turnProfile = PR_SINUSOID;
-    setParams(turn);
-    ui->lambdaSpinBox->setEnabled(true);
-    ui->radiusSpinBox->setEnabled(true);
-    ui->cubicLengthSpinBox->setEnabled(false);
-    ui->cubicGammaSpinBox->setEnabled(false);
-    rePaint();
-}
-
-void MainWindow::on_rbCubic_clicked() {
-    turnProfile = PR_CUBIC;
-    setParams(turn);
-    ui->lambdaSpinBox->setEnabled(false);
-    ui->radiusSpinBox->setEnabled(false);
-    ui->cubicLengthSpinBox->setEnabled(true);
-    ui->cubicGammaSpinBox->setEnabled(true);
-    rePaint();
 }
 
 void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
@@ -953,59 +929,32 @@ void MainWindow::clampLambda() {
     }
 }
 
-void MainWindow::on_rbSS90F_clicked() {
-    turn = TURN_SS90F;
+/**
+ * @brief Switch to a turn profile and load its stored parameters for the current turn.
+ *
+ * Enables the spinboxes the profile uses. The progress slider is left where it is.
+ *
+ * @param profile profile index (Profile_t), the profileGroup button id
+ */
+void MainWindow::selectProfile(int profile) {
+    turnProfile = profile;
+    setParams(turn);
+    bool cubic = (profile == PR_CUBIC);
+    ui->lambdaSpinBox->setEnabled(!cubic);
+    ui->radiusSpinBox->setEnabled(!cubic);
+    ui->cubicLengthSpinBox->setEnabled(cubic);
+    ui->cubicGammaSpinBox->setEnabled(cubic);
+    rePaint();
+}
+
+/**
+ * @brief Switch to a turn type, load its parameters and rewind the progress slider.
+ *
+ * @param turn_index turn type (Turn_t), the turnGroup button id
+ */
+void MainWindow::selectTurn(int turn_index) {
+    turn = Turn_t(turn_index);
     setParams(turn);
     ui->progressSlider->setValue(0);
     rePaint();
 }
-
-void MainWindow::on_rbSS180_clicked() {
-    turn = TURN_SS180;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbSD45_clicked() {
-    turn = TURN_SD45;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbSD135_clicked() {
-    turn = TURN_SD135;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbDS45_clicked() {
-    turn = TURN_DS45;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbDS135_clicked() {
-    turn = TURN_DS135;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbDD90_clicked() {
-    turn = TURN_DD90;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-
-void MainWindow::on_rbSS90E_clicked() {
-    turn = TURN_SS90E;
-    setParams(turn);
-    ui->progressSlider->setValue(0);
-    rePaint();
-}
-

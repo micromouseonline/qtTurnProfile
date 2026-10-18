@@ -80,7 +80,7 @@ Commit after each verified step.
   - Call the recalculation directly instead.
   - Test: profile switch updates acceleration and plot as before.
 
-- [ ] 3.2 Merge repeated radio button slots
+- [x] 3.2 Merge repeated radio button slots
   - Use `QButtonGroup` with ids for the 8 turn types and the 4 profiles.
   - Test: every turn type and profile selectable, parameters load correctly.
 

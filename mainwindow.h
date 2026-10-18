@@ -41,6 +41,8 @@ const float loopInterval = 0.001;
 
 extern TurnParams defaultParams[TURN_TYPE_COUNT];
 
+class QButtonGroup;
+
 class MainWindow : public QMainWindow {
 Q_OBJECT
 
@@ -74,6 +76,10 @@ public slots:
 
 private slots:
 
+    void selectProfile(int profile);
+
+    void selectTurn(int turn_index);
+
     void on_btnReset_clicked();
 
     void on_btnRefresh_clicked();
@@ -98,31 +104,7 @@ private slots:
 
     void on_offsetSpinBox_valueChanged(int arg1);
 
-    void on_rbTrapezoid_clicked();
-
-    void on_rbQuadratic_clicked();
-
-    void on_rbSinusoid_clicked();
-
-    void on_rbCubic_clicked();
-
     void on_sensorAngleSpinBox_valueChanged(int arg1);
-
-    void on_rbSS90F_clicked();
-
-    void on_rbSS180_clicked();
-
-    void on_rbSD45_clicked();
-
-    void on_rbSD135_clicked();
-
-    void on_rbDS45_clicked();
-
-    void on_rbDS135_clicked();
-
-    void on_rbDD90_clicked();
-
-    void on_rbSS90E_clicked();
 
 private:
     /// Working parameters, one set per profile and turn type. Edits persist
@@ -134,6 +116,8 @@ private:
     MouseItem *theMouse;
     PathItem *thePath;
     QGraphicsScene *mouseScene;
+    QButtonGroup *profileGroup;  ///< profile radio buttons, id = Profile_t
+    QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
     QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
 
     /// Working parameters for the current profile and turn type.
