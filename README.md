@@ -61,18 +61,25 @@ shared libraries must be present. Two options:
 cmake --build build --target deploy
 ```
 
-Or equivalently:
+This installs:
+- `~/.local/bin/qtTurnProfile`
+- `~/.local/share/qtTurnProfile/qtTurnProfile.png` (icon)
+- `~/.local/share/applications/qtTurnProfile.desktop` (menu entry, Science & Math)
+- `~/.local/bin/qtTurnProfile-uninstall`
 
-```bash
-cmake --install build --prefix ~/.local
-```
+To uninstall, right-click Turn Profile in the application menu and choose
+Uninstall, or run `qtTurnProfile-uninstall`. It asks first, then removes only
+the files listed above. The source repository is not needed.
 
-Ensure `~/.local/bin` is on your `PATH`.
+`cmake --install build --prefix ~/.local` installs the binary only (no menu
+entry or uninstaller).
 
 **Note:** For distribution to machines without Qt installed, consider packaging
 as an AppImage using `linuxdeploy` with its Qt plugin.
 
 ### Windows
+
+**Untested since the Qt6 port.**
 
 Run `windeployqt` via the CMake deploy target to copy all required DLLs and
 platform plugins into the build directory:

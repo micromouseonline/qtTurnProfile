@@ -181,10 +181,21 @@ Commit after each verified step.
 
 ## 6. Deployment (optional)
 
-- [ ] 6.1 Release build for deploy (separate `build-release` dir).
-- [ ] 6.2 `undeploy` target to remove binary, icon and `.desktop` file.
-- [ ] 6.3 Square 256x256 icon for theme install.
+- [x] 6.1 Release build for deploy (separate `build-release` dir).
+  - Dropped: measured Debug 3.7 ms vs Release 2.7 ms per repaint; only gain is binary size (15 vs 2 MB).
+- [x] 6.2 `undeploy` target to remove binary, icon and `.desktop` file.
+  - Done differently: deploy installs `~/.local/bin/qtTurnProfile-uninstall` (paths baked in, asks via
+    terminal/kdialog/zenity, else does nothing) plus a right-click Uninstall action in the menu entry.
+- [x] 6.3 Square 256x256 icon for theme install.
+  - Done: images/qtTurnProfiler.png replaced by a 256x256 drawing of the default maze view
+    (SS90F, Sinusoid, slider 0) with thick lines for small sizes: walls, grid, path by phase,
+    mouse outline, tyres, velocity arrow; sensors omitted. One-off temp code. Window icon and deploy.
 - [ ] 6.4 AppImage for machines without Qt6.
+- [ ] 6.5 Windows/macOS deploy: fix or remove (currently Linux only in practice)
+  - Windows `deploy` only runs windeployqt into the build dir; always `--release`; untested on Qt6.
+  - Windows Debug POST_BUILD copies from `${DLL_PATH}`, which is never set.
+  - macOS: no deploy at all (bundle in build dir only); macdeployqt not wired up.
+  - Test: build and deploy on each platform, or remove and say Linux only in README.
 
 ## 7. Features
 

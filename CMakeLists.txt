@@ -86,17 +86,29 @@ elseif (UNIX)
             RUNTIME DESTINATION bin
     )
     # 'deploy' target: copy binary to ~/.local/bin and add a menu entry
-    # (Science & Math) via ~/.local/share/applications/${PROJECT_NAME}.desktop
+    # (Science & Math) via ~/.local/share/applications/${PROJECT_NAME}.desktop.
+    # Also installs ~/.local/bin/${PROJECT_NAME}-uninstall, which the menu
+    # entry offers as a right-click "Uninstall" action.
     set(DEPLOY_BIN_DIR "$ENV{HOME}/.local/bin")
     set(DEPLOY_DATA_DIR "$ENV{HOME}/.local/share/${PROJECT_NAME}")
     set(DEPLOY_APPS_DIR "$ENV{HOME}/.local/share/applications")
     set(DEPLOY_ICON "${DEPLOY_DATA_DIR}/${PROJECT_NAME}.png")
+    set(DEPLOY_UNINSTALL "${DEPLOY_BIN_DIR}/${PROJECT_NAME}-uninstall")
     configure_file(qt_turn_profile.desktop.in ${PROJECT_NAME}.desktop @ONLY)
+    configure_file(qt_turn_profile_uninstall.sh.in ${PROJECT_NAME}-uninstall @ONLY)
+    # refresh the application menu after deploying; Plasma caches entries (ksycoca)
+    find_program(KBUILDSYCOCA NAMES kbuildsycoca6 kbuildsycoca5)
+    if (KBUILDSYCOCA)
+        set(MENU_REFRESH COMMAND ${KBUILDSYCOCA})
+    endif ()
     add_custom_target(deploy
             COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_BIN_DIR}" "${DEPLOY_DATA_DIR}" "${DEPLOY_APPS_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "${DEPLOY_BIN_DIR}/${PROJECT_NAME}"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/images/qtTurnProfiler.png" "${DEPLOY_ICON}"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.desktop" "${DEPLOY_APPS_DIR}/${PROJECT_NAME}.desktop"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/${PROJECT_NAME}-uninstall" "${DEPLOY_UNINSTALL}"
+            COMMAND chmod 755 "${DEPLOY_UNINSTALL}"
+            ${MENU_REFRESH}
             DEPENDS ${PROJECT_NAME}
             COMMENT "Installing ${PROJECT_NAME} to ~/.local/bin with menu entry"
     )

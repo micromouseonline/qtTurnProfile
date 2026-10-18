@@ -7,3 +7,8 @@ Icon=@DEPLOY_ICON@
 Terminal=false
 Categories=Science;Math;
 StartupWMClass=@PROJECT_NAME@
+Actions=uninstall;
+
+[Desktop Action uninstall]
+Name=Uninstall
+Exec=@DEPLOY_UNINSTALL@
