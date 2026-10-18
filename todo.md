@@ -161,3 +161,9 @@ Commit after each verified step.
   - Test: slip off (or very high stiffness) reproduces ideal results; slip angle
     grows with speed/centripetal acceleration; path drifts outward.
   - Open: model choice and parameter values to be decided before starting.
+
+- [ ] 7.2 Rework phase calculation for segmented turns (trapezoid, quadratic, sinusoid)
+  - Phases currently switch on theta, which lags by a step; turn loops also stop at turnDistance (1.5).
+  - Known effect: trapezoid phase 1 ramp overshoots turn omega, simulated peak
+    centripetal acceleration up to 0.6% above analytic value (e.g. DS45 9864 vs 9802).
+  - Test: simulated peak matches acceleration box for all turns; exit angle within tolerance.

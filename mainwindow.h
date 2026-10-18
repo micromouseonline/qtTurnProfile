@@ -143,6 +143,12 @@ private:
 
     float maxLambda() const;
 
+    float peakAcceleration(float speed) const;
+
+    float speedForAcceleration(float acceleration) const;
+
+    void updateAccelerationBox();
+
     void clampLambda();
 
     void showTurnSummary() const;

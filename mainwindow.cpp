@@ -10,38 +10,53 @@
 #define RADIANS(x) ((x)*PI / 180.0)
 #define DEGREES(x) ((x)*180.0 / PI)
 
+// Default speeds in all tables give a peak centripetal acceleration of 9800 mm/s/s:
+// speed = sqrt(9800 * min radius), rounded to the nearest mm/s.
 TurnParams defaultParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 2200, .length = 248},    // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 2000, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 110, .startAngle = 0, .angle = 45, .speed = 2200, .length = 134},     // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 1800, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 2200, .length = 144},   // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 1800, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 1800, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1048, .length = 248},    // SS90F
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 913, .length = 370},    // SS180
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1038, .length = 134},     // SD45
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 902, .length = 266},     // SD135
+        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1084, .length = 144},   // DS45
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 885, .length = 257},  // DS135
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 852, .length = 173},   // DD90
+        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 741, .length = 124},       // SS90E
 };
 
 // as defaultParams, but SD45 lambda reduced: 65 exceeds the quadratic limit (64) at radius 110
 TurnParams quadraticParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 2200, .length = 248},    // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 2000, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 60, .radius = 110, .startAngle = 0, .angle = 45, .speed = 2200, .length = 134},     // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 1800, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 2200, .length = 144},   // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 1800, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 1800, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1048, .length = 248},    // SS90F
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 913, .length = 370},    // SS180
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 60, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1038, .length = 134},     // SD45
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 902, .length = 266},     // SD135
+        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1084, .length = 144},   // DS45
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 885, .length = 257},  // DS135
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 852, .length = 173},   // DD90
+        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 741, .length = 124},       // SS90E
 };
 
 TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 96, .startAngle = 0, .angle = 90, .speed = 2200, .length = 248},     // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 82, .startAngle = 0, .angle = 180, .speed = 2000, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 89, .startAngle = 0, .angle = 45, .speed = 2200, .length = 134},      // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 77, .startAngle = 0, .angle = 135, .speed = 1800, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 95, .startAngle = -45, .angle = 45, .speed = 2200, .length = 144},    // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 73, .startAngle = -45, .angle = 135, .speed = 1800, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 61, .startAngle = -45, .angle = 90, .speed = 1800, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 48, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 96, .startAngle = 0, .angle = 90, .speed = 970, .length = 248},     // SS90F
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 82, .startAngle = 0, .angle = 180, .speed = 896, .length = 370},    // SS180
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 89, .startAngle = 0, .angle = 45, .speed = 934, .length = 134},      // SD45
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 77, .startAngle = 0, .angle = 135, .speed = 869, .length = 266},     // SD135
+        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 95, .startAngle = -45, .angle = 45, .speed = 965, .length = 144},    // DS45
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 73, .startAngle = -45, .angle = 135, .speed = 846, .length = 257},  // DS135
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 61, .startAngle = -45, .angle = 90, .speed = 773, .length = 173},   // DD90
+        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 48, .startAngle = 0, .angle = 90, .speed = 686, .length = 124},       // SS90E
+};
+
+// cubic profile: as defaultParams, speeds set from the cubic peak curvature
+// (min radius = length / (1.5 * angle in radians))
+TurnParams cubicParams[TURN_TYPE_COUNT] = {
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1016, .length = 248},    // SS90F
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 877, .length = 370},    // SS180
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1056, .length = 134},     // SD45
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 859, .length = 266},     // SD135
+        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1094, .length = 144},   // DS45
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 844, .length = 257},  // DS135
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 848, .length = 173},   // DD90
+        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 718, .length = 124},       // SS90E
 };
 
 /**
@@ -55,6 +70,8 @@ static const TurnParams *profileDefaults(int profile) {
             return trapezoidParams;
         case PR_QUADRATIC:
             return quadraticParams;
+        case PR_CUBIC:
+            return cubicParams;
         default:
             return defaultParams;
     }
@@ -325,21 +342,17 @@ void MainWindow::on_progressSlider_valueChanged(int value) {
 
 void MainWindow::on_radiusSpinBox_valueChanged(int arg1) {
     float turnRadius = ui->radiusSpinBox->value();
-    float turnSpeed = ui->turnSpeedSpinBox->value();
     params().radius = turnRadius;
-    float turnAcceleration = turnSpeed * turnSpeed / turnRadius;
-    ui->accelerationSpinBox->blockSignals(true);
-    ui->accelerationSpinBox->setValue(int(turnAcceleration));
-    ui->accelerationSpinBox->blockSignals(false);
+    updateAccelerationBox();
     rePaint();
 }
 
 void MainWindow::on_accelerationSpinBox_valueChanged(int arg1) {
     float turnAcceleration = arg1;
-    float turnSpeed = sqrt(turnAcceleration * ui->radiusSpinBox->value());
+    float turnSpeed = speedForAcceleration(turnAcceleration);
     params().speed = turnSpeed;
     ui->turnSpeedSpinBox->blockSignals(true);
-    ui->turnSpeedSpinBox->setValue(int(turnSpeed));
+    ui->turnSpeedSpinBox->setValue(qRound(turnSpeed));
     ui->turnSpeedSpinBox->blockSignals(false);
     rePaint();
 }
@@ -361,6 +374,7 @@ void MainWindow::on_lambdaSpinBox_valueChanged(int arg1) {
 
 void MainWindow::on_cubicLengthSpinBox_valueChanged(int arg1) {
     params().length = arg1;
+    updateAccelerationBox();
     rePaint();
 }
 
@@ -725,10 +739,7 @@ void MainWindow::calculate_leadout(RobotState &robot_state, float distance) {// 
 void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
     float turnSpeed = arg1;
     params().speed = turnSpeed;
-    float turnAcceleration = turnSpeed * turnSpeed / ui->radiusSpinBox->value();
-    ui->accelerationSpinBox->blockSignals(true);
-    ui->accelerationSpinBox->setValue(int(turnAcceleration));
-    ui->accelerationSpinBox->blockSignals(false);
+    updateAccelerationBox();
     rePaint();
 }
 
@@ -803,6 +814,59 @@ void MainWindow::setParams(int turn_index) {
     ui->turnSpeedSpinBox->setValue(int(profileParams[turnProfile][turn_index].speed));
     ui->cubicLengthSpinBox->setValue(int(profileParams[turnProfile][turn_index].length));
     loadingParams = false;
+    // the turn angle also affects peak acceleration and has no spinbox handler
+    updateAccelerationBox();
+}
+
+/**
+ * @brief Peak centripetal acceleration of the current turn at a given speed.
+ *
+ * Each profile needs its own calculation:
+ *  - trapezoid, quadratic, sinusoid: the peak is in the constant radius arc,
+ *    a = v^2 / r. Valid while the arc exists (see maxLambda()).
+ *  - cubic: curvature is (6 * angle / L) * f(1 - f), f = s / L, largest at
+ *    mid turn, so a = v^2 * 1.5 * angle / L. Assumes gamma = 0 (constant speed).
+ *
+ * @param speed turn speed in mm/s
+ * @return peak centripetal acceleration in mm/s/s
+ */
+float MainWindow::peakAcceleration(float speed) const {
+    float angle = RADIANS(profileParams[turnProfile][turn].angle);
+    switch (turnProfile) {
+        case PR_CUBIC:
+            return speed * speed * 1.5f * angle / ui->cubicLengthSpinBox->value();
+        default:
+            return speed * speed / ui->radiusSpinBox->value();
+    }
+}
+
+/**
+ * @brief Turn speed that gives a required peak centripetal acceleration.
+ *
+ * Inverse of peakAcceleration(). In the robot the speed is derived this way.
+ *
+ * @param acceleration peak centripetal acceleration in mm/s/s
+ * @return turn speed in mm/s
+ */
+float MainWindow::speedForAcceleration(float acceleration) const {
+    float angle = RADIANS(profileParams[turnProfile][turn].angle);
+    switch (turnProfile) {
+        case PR_CUBIC:
+            return std::sqrt(acceleration * ui->cubicLengthSpinBox->value() / (1.5f * angle));
+        default:
+            return std::sqrt(acceleration * ui->radiusSpinBox->value());
+    }
+}
+
+/**
+ * @brief Show peakAcceleration() for the current speed in the acceleration box.
+ *
+ * Signals are blocked so the speed is not recalculated from the rounded value.
+ */
+void MainWindow::updateAccelerationBox() {
+    ui->accelerationSpinBox->blockSignals(true);
+    ui->accelerationSpinBox->setValue(qRound(peakAcceleration(ui->turnSpeedSpinBox->value())));
+    ui->accelerationSpinBox->blockSignals(false);
 }
 
 /**
@@ -904,3 +968,4 @@ void MainWindow::on_rbSS90E_clicked() {
     ui->progressSlider->setValue(0);
     rePaint();
 }
+
