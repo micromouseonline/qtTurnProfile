@@ -40,8 +40,6 @@ void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     painter->drawLine(right_inner, -recess_offs, right_inner, recess_offs);   // wheel well right side
     painter->drawLine(left_inner, recess_offs, right_inner, recess_offs);   // rear edge
     // sensors
-    pen.setColor(Qt::green);
-    painter->setPen(pen);
     painter->setPen(QColor(0, 255, 0, 192));
     // diagonals
     QPoint sensorOrigin;
@@ -95,7 +93,7 @@ void MouseItem::drawVelocity(QPainter *painter) const {
     painter->restore();
 }
 
-void MouseItem::drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensorAngle) const {
+void MouseItem::drawSensor(QPainter *painter, const QPoint &sensorOrigin, qreal sensorAngle) const {
     float halfAngle = 3;
     qreal rayCos;
     qreal raySin;

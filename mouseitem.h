@@ -38,7 +38,7 @@ private:
     void drawVelocity(QPainter *painter) const;
 
     void
-    drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensorAngle) const;
+    drawSensor(QPainter *painter, const QPoint &sensorOrigin, qreal sensorAngle) const;
 };
 
 #endif  // GRAPHICMOUSE_H

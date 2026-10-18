@@ -37,8 +37,6 @@ set(SOURCE_FILES
         profile_cubic.cpp
         profile_quadratic.cpp
         resources.qrc
-        pathitem.cpp
-        pathitem.h
         robotstate.h
         angles.h
         )

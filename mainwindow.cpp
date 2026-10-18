@@ -7,9 +7,7 @@
 #include "ui_mainwindow.h"
 #include "angles.h"
 #include "track.h"
-#include "pathitem.h"
 #include "robotstate.h"
-
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
@@ -24,15 +22,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         }
     }
 
-    thePath = new PathItem;
     theMouse = new MouseItem;
     theMouse->setSensorAngle(ui->sensorAngleSpinBox->value());
-    mouseScene = new QGraphicsScene;
+    mouseScene = new QGraphicsScene(this);  // deleted with the window; owns its items
     mouseScene->setSceneRect(-100, -100, 380, 380);
     mouseScene->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
     drawMazeWalls();
     mouseScene->addItem(theMouse);
-//    mouseScene->addItem(thePath);
     ui->pathView->setScene(mouseScene);
     ui->pathView->setRenderHint(QPainter::Antialiasing);
     buildProfileButtons();
@@ -66,9 +62,9 @@ void MainWindow::on_btnRefresh_clicked() {
 }
 
 void MainWindow::showTurnSummary() const {
-    float max_alpha = g_track.get_max_alpha() / loopInterval;
+    float max_alpha = track.get_max_alpha() / loopInterval;
     qreal wheelAcceleration = theMouse->m_radius * radians(max_alpha);
-    Pose exit_pose = g_track.get_exit_pose();
+    Pose exit_pose = track.get_exit_pose();
 
     ui->textEdit->clear();
     ui->textEdit->append("Turn Parameters");
@@ -77,16 +73,16 @@ void MainWindow::showTurnSummary() const {
     float minRadius = speed * speed / peakAcceleration(speed);
     ui->textEdit->append("   Min Radius: " + QString::number(minRadius, 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("   Turn Speed: " + QString::number(ui->turnSpeedSpinBox->value(), 'f', 0).rightJustified(6, ' ') + " mm/s");
-    ui->textEdit->append("Cent'l Acceln: " + QString::number(g_track.get_max_acceleration(), 'f', 0).rightJustified(6, ' ') + " mm/s/s");
+    ui->textEdit->append("Cent'l Acceln: " + QString::number(track.get_max_acceleration(), 'f', 0).rightJustified(6, ' ') + " mm/s/s");
     ui->textEdit->append(" Wheel Acceln: " + QString::number(wheelAcceleration, 'f', 0).rightJustified(6, ' ') + " mm/s/s");
     ui->textEdit->append("        Alpha: " + QString::number(max_alpha, 'f', 0).rightJustified(6, ' ') + " deg/s/s");
-    ui->textEdit->append("    Omega Max: " + QString::number(g_track.get_max_omega(), 'f', 0).rightJustified(6, ' ') + " deg/s");
+    ui->textEdit->append("    Omega Max: " + QString::number(track.get_max_omega(), 'f', 0).rightJustified(6, ' ') + " deg/s");
     ui->textEdit->append("       Exit X: " + QString::number(exit_pose.x(), 'f', 1).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("       Exit Y: " + QString::number(exit_pose.y(), 'f', 1).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("        Theta: " + QString::number(exit_pose.theta(), 'f', 1).rightJustified(6, ' ') + " deg");
-    ui->textEdit->append("     Distance: " + QString::number(g_track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("         Time: " + QString::number(g_track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
-    ui->textEdit->append("   Exit Speed: " + QString::number(g_track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
+    ui->textEdit->append("     Distance: " + QString::number(track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
+    ui->textEdit->append("         Time: " + QString::number(track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
+    ui->textEdit->append("   Exit Speed: " + QString::number(track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
     for (const SummaryLine &line : profile().summary(turnSetup(), params().values)) {
         ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
                              QString::number(line.value, 'f', line.decimals).rightJustified(6, ' ') + " " +
@@ -96,10 +92,10 @@ void MainWindow::showTurnSummary() const {
 
 void MainWindow::rePaint() {
     constrainParams();
-    profile().simulate(turnSetup(), ui->turnSpeedSpinBox->value(), params().values, g_track);
+    profile().simulate(turnSetup(), ui->turnSpeedSpinBox->value(), params().values, track);
     showTurnSummary();
     ui->progressSlider->setMinimum(0);
-    ui->progressSlider->setMaximum(g_track.finish_index());
+    ui->progressSlider->setMaximum(track.finish_index());
     drawBreadcrumbs();
     drawProfileGraph();
     showProgress();
@@ -113,16 +109,16 @@ void MainWindow::rePaint() {
  */
 void MainWindow::showProgress() {
     int progress = ui->progressSlider->value();
-    Pose pose = g_track.get_pose_at(progress);
+    Pose pose = track.get_pose_at(progress);
     theMouse->setPose(pose);
-    theMouse->setVelocity(g_track.get_speed_at(progress));
+    theMouse->setVelocity(track.get_speed_at(progress));
     ui->lblPathView->setText(
-            QString::number(g_track.record_count(), 'f', 0).rightJustified(4, ' ') + "  " +
-            QString::number(g_track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + "mm " +
+            QString::number(track.record_count(), 'f', 0).rightJustified(4, ' ') + "  " +
+            QString::number(track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + "mm " +
             "(" + QString::number(pose.x(), 'f', 0).rightJustified(3, ' ') +
             "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') +
             ") ang:" + QString::number(pose.theta(), 'f', 0).rightJustified(3, ' ') + "deg, " +
-            "omega: " + QString::number(g_track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s");
+            "omega: " + QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s");
 }
 
 void MainWindow::drawProfileGraph() const {
@@ -134,10 +130,10 @@ void MainWindow::drawProfileGraph() const {
     QVector<qreal> yaxis_speed;
     QVector<qreal> yaxis_left_wheel;
     QVector<qreal> yaxis_right_wheel;
-    for (int i = 1; i < g_track.record_count(); i++) {
-        xaxis.push_back(g_track.get_time_at(i));
-        float omega = g_track.get_omega_at(i);
-        float speed = g_track.get_speed_at(i);
+    for (int i = 1; i < track.record_count(); i++) {
+        xaxis.push_back(track.get_time_at(i));
+        float omega = track.get_omega_at(i);
+        float speed = track.get_speed_at(i);
         yaxis_omega.push_back(omega);
         yaxis_speed.push_back(speed);
         yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
@@ -158,7 +154,6 @@ void MainWindow::drawProfileGraph() const {
     ui->customPlot->graph(3)->setData(xaxis, yaxis_right_wheel);
     ui->customPlot->graph(3)->setPen(QPen(Qt::darkCyan));
 
-    //  ui->customPlot->graph(1)->setPen(QPen(Qt::red));
     QPen speedPen;
     speedPen.setColor(Qt::darkMagenta);
     speedPen.setStyle(Qt::DotLine);
@@ -170,18 +165,12 @@ void MainWindow::drawProfileGraph() const {
     ui->customPlot->yAxis->setLabelColor(Qt::blue);
     // set axes ranges, so we see all data:
     ui->customPlot->xAxis->setRange(0, 0.5);
-    //  ui->customPlot->xAxis->setAutoTickStep(false);
-    //  ui->customPlot->xAxis->setTickStep(0.1);
 
     ui->customPlot->yAxis->setRange(0, 1600);
     ui->customPlot->yAxis->setVisible(true);
-    //  ui->customPlot->yAxis->setAutoTickStep(false);
-    //  ui->customPlot->yAxis->setTickStep(200);
 
     ui->customPlot->yAxis2->setRange(0, 3200);
     ui->customPlot->yAxis2->setVisible(true);
-    //  ui->customPlot->yAxis2->setAutoTickStep(false);
-    //  ui->customPlot->yAxis2->setTickStep(400);
 
     ui->customPlot->yAxis2->setLabel("Tangential Velocity (mm/s)");
     ui->customPlot->yAxis2->setLabelColor(Qt::darkMagenta);
@@ -202,8 +191,8 @@ void MainWindow::drawBreadcrumbs() {
     QPen markerPen;
     markerPen.setWidthF(2.0);
     markerPen.setStyle(Qt::DotLine);
-    for (int i = 0; i < g_track.record_count(); i += 5) {
-        switch (g_track.get_phase_at(i)) {
+    for (int i = 0; i < track.record_count(); i += 5) {
+        switch (track.get_phase_at(i)) {
             case 0:
                 markerPen.setColor(Qt::blue);
                 break;
@@ -220,7 +209,7 @@ void MainWindow::drawBreadcrumbs() {
                 markerPen.setColor(Qt::cyan);
                 break;
         }
-        Pose pose = g_track.get_pose_at(i);// draw a breadcrumb
+        Pose pose = track.get_pose_at(i);// draw a breadcrumb
         mouseScene->addEllipse(pose.x(), pose.y(), 1, 1, markerPen)->setParentItem(breadcrumbs);
     }
 }
@@ -290,10 +279,6 @@ void MainWindow::drawMazeWalls() {
     mouseScene->addLine(-5, 0, 5, 0);
     mouseScene->addLine(0, -5, 0, 5);
     mouseScene->addEllipse(-5, -5, 10, 10);
-}
-
-void MainWindow::closeEvent(QCloseEvent *event) {
-    event->accept();
 }
 
 void MainWindow::on_progressSlider_valueChanged(int value) {

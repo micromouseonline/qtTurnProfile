@@ -7,7 +7,6 @@
 #include "mouseitem.h"
 #include "qcustomplot.h"
 #include "track.h"
-#include "pathitem.h"
 #include "robotstate.h"
 #include <array>
 #include <vector>
@@ -34,16 +33,9 @@ class MainWindow : public QMainWindow {
 Q_OBJECT
 
 public:
-    Track g_track;
-
     explicit MainWindow(QWidget *parent = nullptr);
 
     ~MainWindow() override;
-
-    void drawMazeWalls();
-
-protected:
-    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
 public slots:
 
@@ -77,11 +69,11 @@ private:
     /// Working values, indexed [profile][turn]. Edits persist until reset;
     /// profiles are independent of each other.
     std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
+    Track track;  ///< the simulated turn and leadout
     Turn_t turn = TURN_SS90F;
     int turnProfile = 0;  ///< index into profile_registry()
     Ui::MainWindow *ui;
     MouseItem *theMouse;
-    PathItem *thePath;
     QGraphicsScene *mouseScene;
     QButtonGroup *profileGroup;  ///< profile radio buttons, id = registry index
     QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
@@ -99,6 +91,8 @@ private:
     const TurnValues &params() const { return stored[turnProfile][turn]; }
 
     void setParams(int turn_index);
+
+    void drawMazeWalls();
 
     void buildProfileButtons();
 

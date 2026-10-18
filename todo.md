@@ -127,11 +127,16 @@ Commit after each verified step.
   - Done: `angles.h` with constexpr PI, radians(), degrees() (double, same arithmetic
     as the macros). PI kept at 3.14159265359. 370 reference lines identical.
 
-- [ ] 3.7 Remove dead code and leaks
+- [x] 3.7 Remove dead code and leaks
   - Unused `PathItem` / `thePath`; `mouseScene` and `thePath` never deleted (give parents).
   - Unused locals in `MouseItem::paint`; empty `closeEvent`; commented-out code.
   - Rename public `g_track` member, make it private.
   - Pass `QPoint` by const ref in `drawSensor`.
+  - Done: pathitem.* deleted; scene parented to window; empty closeEvent and
+    commented-out code removed; g_track -> private `track`; drawMazeWalls private;
+    drawSensor takes const QPoint &; redundant pen in MouseItem::paint removed.
+  - Result: 370 reference lines and 6 scene renders identical; no -Wall -Wextra
+    warnings in project code.
 
 - [ ] 3.8 Add tests for the physics module (after 3.3)
   - e.g. exit angle within tolerance, turn distance matches formula, no NaN.
