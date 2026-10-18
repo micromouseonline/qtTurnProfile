@@ -14,7 +14,7 @@ Commit after each verified step.
   - `on_btnReset_clicked` always restores `defaultParams`; Trapezoid uses `trapezoidParams`.
   - Test: Trapezoid, edit radius, Reset -> radius returns to trapezoid default (e.g. SS90F = 96).
 
-- [ ] 1.3 Profile switch discards user edits for all turns
+- [x] 1.3 Profile switch discards user edits for all turns
   - `on_rb<Profile>_clicked` overwrite every `currentParams[]` entry.
   - Decision: retain edits until explicitly reset (Reset button). Profiles stay
     fully separate: different behaviour, rationale and parameter sets.

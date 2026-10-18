@@ -34,7 +34,7 @@ enum Turn_t {
 };
 
 enum Profile_t {
-    PR_TRAPEZOID, PR_QUADRATIC, PR_SINUSOID, PR_CUBIC
+    PR_TRAPEZOID, PR_QUADRATIC, PR_SINUSOID, PR_CUBIC, PR_COUNT
 };
 
 const float loopInterval = 0.001;
@@ -125,13 +125,18 @@ private slots:
     void on_rbSS90E_clicked();
 
 private:
-    TurnParams currentParams[TURN_TYPE_COUNT]{};
+    /// Working parameters, one set per profile and turn type. Edits persist
+    /// until reset; profiles are independent of each other.
+    TurnParams profileParams[PR_COUNT][TURN_TYPE_COUNT]{};
     Turn_t turn = TURN_SS90F;
     int turnProfile = PR_TRAPEZOID;
     Ui::MainWindow *ui;
     MouseItem *theMouse;
     PathItem *thePath;
     QGraphicsScene *mouseScene;
+
+    /// Working parameters for the current profile and turn type.
+    TurnParams &params() { return profileParams[turnProfile][turn]; }
 
     void setParams(int turn_index);
 

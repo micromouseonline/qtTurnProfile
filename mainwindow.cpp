@@ -32,12 +32,23 @@ TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
         {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 48, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
 };
 
+/**
+ * @brief Default parameter table for a profile.
+ * @param profile profile index (Profile_t)
+ * @return table of TURN_TYPE_COUNT entries the profile starts from and resets to
+ */
+static const TurnParams *profileDefaults(int profile) {
+    return (profile == PR_TRAPEZOID) ? trapezoidParams : defaultParams;
+}
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
     // on_<widget>_<signal> slots are auto-connected by setupUi (connectSlotsByName)
 
-    for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-        currentParams[i] = defaultParams[i];
+    for (int p = 0; p < PR_COUNT; p++) {
+        for (int i = 0; i < TURN_TYPE_COUNT; i++) {
+            profileParams[p][i] = profileDefaults(p)[i];
+        }
     }
 
     thePath = new PathItem;
@@ -215,9 +226,7 @@ void MainWindow::drawBreadcrumbs() const {
 }
 
 void MainWindow::on_btnReset_clicked() {
-    // restore from the table the current profile was loaded from
-    const TurnParams *defaults = (turnProfile == PR_TRAPEZOID) ? trapezoidParams : defaultParams;
-    currentParams[turn] = defaults[turn];
+    params() = profileDefaults(turnProfile)[turn];
     setParams(turn);
     rePaint();
 }
@@ -294,7 +303,7 @@ void MainWindow::on_progressSlider_valueChanged(int value) {
 void MainWindow::on_radiusSpinBox_valueChanged(int arg1) {
     float turnRadius = ui->radiusSpinBox->value();
     float turnSpeed = ui->turnSpeedSpinBox->value();
-    currentParams[turn].radius = turnRadius;
+    params().radius = turnRadius;
     float turnAcceleration = turnSpeed * turnSpeed / turnRadius;
     ui->accelerationSpinBox->blockSignals(true);
     ui->accelerationSpinBox->setValue(int(turnAcceleration));
@@ -305,7 +314,7 @@ void MainWindow::on_radiusSpinBox_valueChanged(int arg1) {
 void MainWindow::on_accelerationSpinBox_valueChanged(int arg1) {
     float turnAcceleration = arg1;
     float turnSpeed = sqrt(turnAcceleration * ui->radiusSpinBox->value());
-    currentParams[turn].speed = turnSpeed;
+    params().speed = turnSpeed;
     ui->turnSpeedSpinBox->blockSignals(true);
     ui->turnSpeedSpinBox->setValue(int(turnSpeed));
     ui->turnSpeedSpinBox->blockSignals(false);
@@ -323,12 +332,12 @@ void MainWindow::on_startXSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::on_lambdaSpinBox_valueChanged(int arg1) {
-    currentParams[turn].lambda = arg1;
+    params().lambda = arg1;
     rePaint();
 }
 
 void MainWindow::on_cubicLengthSpinBox_valueChanged(int arg1) {
-    currentParams[turn].length = arg1;
+    params().length = arg1;
     rePaint();
 }
 
@@ -379,11 +388,11 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     // these are enough to fully define the turn for the robot
     float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
     float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
-    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float turnAngle = (float) params().angle;                // total turn angle in degrees
     float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
 
     // this is only needed for the simulator
-    float startAngle = -currentParams[turn].startAngle;
+    float startAngle = -params().startAngle;
 
     // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
@@ -465,8 +474,8 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
 
 void MainWindow::calculateCubic(float start_x, float start_y) {
     float turnSpeed = ui->turnSpeedSpinBox->value();
-    float turnAngle = currentParams[turn].angle;
-    float startAngle = -currentParams[turn].startAngle;
+    float turnAngle = params().angle;
+    float startAngle = -params().startAngle;
     float endAngle = startAngle + turnAngle;
 
     float length = ui->cubicLengthSpinBox->value();
@@ -541,11 +550,11 @@ void MainWindow::calculateQuadratic(float start_x, float start_y) {
     // these are enough to fully define the turn for the robot
     float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
     float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
-    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float turnAngle = (float) params().angle;                // total turn angle in degrees
     float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
 
     // this is only needed for the simulator
-    float startAngle = -currentParams[turn].startAngle;
+    float startAngle = -params().startAngle;
 
     // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
@@ -628,11 +637,11 @@ void MainWindow::calculateSine(float start_x, float start_y) {
     // these are enough to fully define the turn for the robot
     float turnRadius = (float) ui->radiusSpinBox->value();  // the minimum radius portion
     float turnSpeed = (float) ui->turnSpeedSpinBox->value();// constant throughout the turn
-    float turnAngle = (float) currentParams[turn].angle;    // total turn angle in degrees
+    float turnAngle = (float) params().angle;                // total turn angle in degrees
     float lambda = (float) ui->lambdaSpinBox->value();      // distance of angular acceleration phase
 
     // this is only needed for the simulator
-    float startAngle = -currentParams[turn].startAngle;
+    float startAngle = -params().startAngle;
 
     // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
@@ -686,7 +695,7 @@ void MainWindow::calculate_leadout(RobotState &robot_state, float distance) {// 
 
 void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
     float turnSpeed = arg1;
-    currentParams[turn].speed = turnSpeed;
+    params().speed = turnSpeed;
     float turnAcceleration = turnSpeed * turnSpeed / ui->radiusSpinBox->value();
     ui->accelerationSpinBox->blockSignals(true);
     ui->accelerationSpinBox->setValue(int(turnAcceleration));
@@ -695,10 +704,10 @@ void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
-    currentParams[turn].offs = arg1;
-    float baseX = currentParams[turn].baseX;
-    float baseY = currentParams[turn].baseY;
-    float startAngle = currentParams[turn].startAngle;
+    params().offs = arg1;
+    float baseX = params().baseX;
+    float baseY = params().baseY;
+    float startAngle = params().startAngle;
     float start_x = baseX - double(arg1) * cos(PI / 2 + RADIANS(startAngle));
     float start_y = baseY - double(arg1) * sin(PI / 2 + RADIANS(startAngle));
     ui->startXSpinBox->blockSignals(true);
@@ -711,12 +720,9 @@ void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::on_rbTrapezoid_clicked() {
-    for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-        currentParams[i] = trapezoidParams[i];
-    }
+    turnProfile = PR_TRAPEZOID;
     int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    turnProfile = PR_TRAPEZOID;
     ui->turnSpeedSpinBox->setValue(v + 1);  // TODO: why does this have  to happen
     // twice? (also in related functions)
     ui->turnSpeedSpinBox->setValue(v);
@@ -728,12 +734,9 @@ void MainWindow::on_rbTrapezoid_clicked() {
 }
 
 void MainWindow::on_rbQuadratic_clicked() {
-    for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-        currentParams[i] = defaultParams[i];
-    }
+    turnProfile = PR_QUADRATIC;
     int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    turnProfile = PR_QUADRATIC;
     ui->turnSpeedSpinBox->setValue(v + 1);
     ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(true);
@@ -744,12 +747,9 @@ void MainWindow::on_rbQuadratic_clicked() {
 }
 
 void MainWindow::on_rbSinusoid_clicked() {
-    for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-        currentParams[i] = defaultParams[i];
-    }
+    turnProfile = PR_SINUSOID;
     int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    turnProfile = PR_SINUSOID;
     ui->turnSpeedSpinBox->setValue(v + 1);
     ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(true);
@@ -760,12 +760,9 @@ void MainWindow::on_rbSinusoid_clicked() {
 }
 
 void MainWindow::on_rbCubic_clicked() {
-    for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-        currentParams[i] = defaultParams[i];
-    }
+    turnProfile = PR_CUBIC;
     int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    turnProfile = PR_CUBIC;
     ui->turnSpeedSpinBox->setValue(v + 1);
     ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(false);
@@ -781,11 +778,11 @@ void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::setParams(int turn_index) {
-    ui->radiusSpinBox->setValue(int(currentParams[turn_index].radius));
-    ui->lambdaSpinBox->setValue(int(currentParams[turn_index].lambda));
-    ui->offsetSpinBox->setValue(int(currentParams[turn_index].offs));
-    //  ui->turnSpeedSpinBox->setValue(int(currentParams[turn].speed));
-    ui->cubicLengthSpinBox->setValue(int(currentParams[turn_index].length));
+    ui->radiusSpinBox->setValue(int(profileParams[turnProfile][turn_index].radius));
+    ui->lambdaSpinBox->setValue(int(profileParams[turnProfile][turn_index].lambda));
+    ui->offsetSpinBox->setValue(int(profileParams[turnProfile][turn_index].offs));
+    //  ui->turnSpeedSpinBox->setValue(int(params().speed));
+    ui->cubicLengthSpinBox->setValue(int(profileParams[turnProfile][turn_index].length));
 }
 
 void MainWindow::on_rbSS90F_clicked() {
