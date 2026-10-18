@@ -50,7 +50,7 @@ Commit after each verified step.
   - Result: finish index now last phase-3 record; exit x/y, distance -1 step (<= 1.09 mm),
     time -1 ms; exit theta unchanged (leadout omega = 0). Empty track returns 0 / origin.
 
-- [ ] 1.8 Trapezoid omits initial `add_record` (other profiles have it)
+- [x] 1.8 Trapezoid omits initial `add_record` (other profiles have it)
   - Test: graph and breadcrumbs start at the same point for all profiles.
 
 ## 2. Performance

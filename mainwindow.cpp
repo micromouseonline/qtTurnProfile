@@ -444,6 +444,7 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
 
     reset_track();
     RobotState robot_state(start_x, start_y, startAngle, turnSpeed, loopInterval);
+    g_track.add_record(robot_state);
 
     // In the robot, take care that rounding errors do not preventit from
     // exactly reaching the total angle as omega gets small. a residual error of
