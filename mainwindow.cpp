@@ -215,7 +215,9 @@ void MainWindow::drawBreadcrumbs() const {
 }
 
 void MainWindow::on_btnReset_clicked() {
-    currentParams[turn] = defaultParams[turn];
+    // restore from the table the current profile was loaded from
+    const TurnParams *defaults = (turnProfile == PR_TRAPEZOID) ? trapezoidParams : defaultParams;
+    currentParams[turn] = defaults[turn];
     setParams(turn);
     rePaint();
 }

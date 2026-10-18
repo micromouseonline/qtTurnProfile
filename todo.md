@@ -10,7 +10,7 @@ Commit after each verified step.
     `connectSlotsByName` already does this, so slots fire twice.
   - Test: add temporary qDebug in slots, confirm one call per click/change.
 
-- [ ] 1.2 Reset uses wrong table for Trapezoid
+- [x] 1.2 Reset uses wrong table for Trapezoid
   - `on_btnReset_clicked` always restores `defaultParams`; Trapezoid uses `trapezoidParams`.
   - Test: Trapezoid, edit radius, Reset -> radius returns to trapezoid default (e.g. SS90F = 96).
 
