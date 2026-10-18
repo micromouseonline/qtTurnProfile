@@ -190,8 +190,11 @@ Commit after each verified step.
   - Done: images/qtTurnProfiler.png replaced by a 256x256 drawing of the default maze view
     (SS90F, Sinusoid, slider 0) with thick lines for small sizes: walls, grid, path by phase,
     mouse outline, tyres, velocity arrow; sensors omitted. One-off temp code. Window icon and deploy.
-- [ ] 6.4 AppImage for machines without Qt6.
-- [ ] 6.5 Windows/macOS deploy: fix or remove (currently Linux only in practice)
+- [-] 6.4 AppImage for machines without Qt6.
+  - Deferred until another user needs it. Notes: linuxdeploy + qt plugin; needs relative-path .desktop;
+    glibc >= build host (2.39); Fusion only (no Breeze/KDE platform theme); EXTRA_PLATFORM_PLUGINS for Wayland.
+- [-] 6.5 Windows/macOS deploy: fix or remove (currently Linux only in practice)
+  - Deferred until another user needs it.
   - Windows `deploy` only runs windeployqt into the build dir; always `--release`; untested on Qt6.
   - Windows Debug POST_BUILD copies from `${DLL_PATH}`, which is never set.
   - macOS: no deploy at all (bundle in build dir only); macdeployqt not wired up.
