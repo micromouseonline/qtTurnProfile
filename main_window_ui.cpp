@@ -140,12 +140,14 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     startLayout->addRow(tr("X:"), startXSpinBox);
     startLayout->addRow(tr("Y:"), startYSpinBox);
 
-    btnRefresh = new QPushButton(tr("Refresh"));
-    btnRefresh->setObjectName("btnRefresh");
+    btnAutoScale = new QPushButton(tr("Auto Scale"));
+    btnAutoScale->setObjectName("btnAutoScale");
+    btnAutoScale->setCheckable(true);
+    btnAutoScale->setToolTip(tr("Fit the graph axes to the data. Off: fixed axes, extended only if data would be clipped"));
     btnReset = new QPushButton(tr("Reset"));
     btnReset->setObjectName("btnReset");
     auto *buttons = new QHBoxLayout;
-    buttons->addWidget(btnRefresh);
+    buttons->addWidget(btnAutoScale);
     buttons->addWidget(btnReset);
 
     auto *rightColumn = new QVBoxLayout;

@@ -17,7 +17,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindowUi) {
     ui->setupUi(this);
-    connect(ui->btnRefresh, &QPushButton::clicked, this, &MainWindow::rePaint);
+    connect(ui->btnAutoScale, &QPushButton::toggled, this, &MainWindow::drawProfileGraph);
     connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::resetTurn);
     connect(ui->startXSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
     connect(ui->startYSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
@@ -126,6 +126,31 @@ void MainWindow::showProgress() {
             "omega: " + QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s");
 }
 
+namespace {
+
+/**
+ * @brief Round up to a tidy axis limit: the next multiple of half a power of ten.
+ * @param value positive value to cover
+ * @return smallest multiple of 10^floor(log10(value)) / 2 that is >= value
+ */
+double niceCeil(double value) {
+    if (value <= 0) {
+        return 1;
+    }
+    double step = std::pow(10.0, std::floor(std::log10(value))) / 2;
+    return std::ceil(value / step) * step;
+}
+
+}  // namespace
+
+/**
+ * @brief Plot omega, speed and wheel speeds against time for the current track.
+ *
+ * Axes are fixed (0-0.5 s, 0-1600 deg/s, 0-3200 mm/s) so changes of speed
+ * show against a constant scale; an axis is extended only if the data would
+ * be clipped, e.g. for slow turns. With Auto Scale checked, the axes are
+ * fitted to the data instead (from zero, with a little headroom).
+ */
 void MainWindow::drawProfileGraph() const {
     // create graph and assign data to it:
     ui->customPlot->clearGraphs();
@@ -135,6 +160,8 @@ void MainWindow::drawProfileGraph() const {
     QVector<qreal> yaxis_speed;
     QVector<qreal> yaxis_left_wheel;
     QVector<qreal> yaxis_right_wheel;
+    double maxOmega = 0;
+    double maxSpeed = 0;
     for (int i = 1; i < track.record_count(); i++) {
         xaxis.push_back(track.get_time_at(i));
         float omega = track.get_omega_at(i);
@@ -143,7 +170,10 @@ void MainWindow::drawProfileGraph() const {
         yaxis_speed.push_back(speed);
         yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
         yaxis_right_wheel.push_back(speed - theMouse->m_radius * radians(omega));
+        maxOmega = std::max(maxOmega, double(omega));
+        maxSpeed = std::max({maxSpeed, double(speed), yaxis_left_wheel.back(), yaxis_right_wheel.back()});
     }
+    double maxTime = xaxis.isEmpty() ? 0 : xaxis.back();
 
     ui->customPlot->graph(0)->setData(xaxis, yaxis_omega);
     ui->customPlot->graph(0)->setPen(QPen(Qt::blue));
@@ -169,12 +199,17 @@ void MainWindow::drawProfileGraph() const {
     ui->customPlot->yAxis->setLabel("Angular Velocity (deg/s)");
     ui->customPlot->yAxis->setLabelColor(Qt::blue);
     // set axes ranges, so we see all data:
-    ui->customPlot->xAxis->setRange(0, 0.5);
-
-    ui->customPlot->yAxis->setRange(0, 1600);
+    if (ui->btnAutoScale->isChecked()) {
+        const double headroom = 1.05;
+        ui->customPlot->xAxis->setRange(0, maxTime > 0 ? maxTime * headroom : 0.5);
+        ui->customPlot->yAxis->setRange(0, maxOmega > 0 ? maxOmega * headroom : 1600);
+        ui->customPlot->yAxis2->setRange(0, maxSpeed > 0 ? maxSpeed * headroom : 3200);
+    } else {
+        ui->customPlot->xAxis->setRange(0, maxTime > 0.5 ? niceCeil(maxTime) : 0.5);
+        ui->customPlot->yAxis->setRange(0, maxOmega > 1600 ? niceCeil(maxOmega) : 1600);
+        ui->customPlot->yAxis2->setRange(0, maxSpeed > 3200 ? niceCeil(maxSpeed) : 3200);
+    }
     ui->customPlot->yAxis->setVisible(true);
-
-    ui->customPlot->yAxis2->setRange(0, 3200);
     ui->customPlot->yAxis2->setVisible(true);
 
     ui->customPlot->yAxis2->setLabel("Tangential Velocity (mm/s)");

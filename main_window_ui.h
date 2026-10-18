@@ -32,7 +32,7 @@ class QVBoxLayout;
  * Layout:
  * - top: profile graph (left), mouse path view with progress slider (right)
  * - bottom: turn summary, Parameters, Turn Type, then a column with
- *   Turn Profile, Start position and the Refresh/Reset buttons
+ *   Turn Profile, Start position and the Auto Scale/Reset buttons
  *
  * Profile radio buttons and profile parameter rows are added by MainWindow:
  * the profile buttons into profileLayout, the parameter rows into
@@ -62,7 +62,7 @@ struct MainWindowUi {
 
     QSpinBox *startXSpinBox;
     QSpinBox *startYSpinBox;
-    QPushButton *btnRefresh;
+    QPushButton *btnAutoScale;  ///< checkable: auto-scaled graph axes when checked
     QPushButton *btnReset;
 
     /**

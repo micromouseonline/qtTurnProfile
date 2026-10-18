@@ -166,13 +166,15 @@ Commit after each verified step.
   - Done: `main_window_ui.h/.cpp` (MainWindowUi) builds widgets with layouts; turn buttons generated;
     profile param rows via QFormLayout insertRow/removeRow; explicit new-style connects (no
     connectSlotsByName); system fixed font; window fits contents (SetFixedSize, 824x757 Fusion).
-- [ ] 5.2 Auto-scale graph axes (currently fixed 0-0.5 s, 0-1600 deg/s, 0-3200 mm/s)
-  - Test: SS180 at low speed fully visible.
+- [x] 5.2 Auto-scale graph axes (currently fixed 0-0.5 s, 0-1600 deg/s, 0-3200 mm/s)
+  - Done with 5.5: fixed axes by default (speed changes visible), each extended to a tidy limit
+    only if data would be clipped (e.g. slow SS180 -> 2 s). Auto Scale button fits axes to data.
 - [ ] 5.3 Allow window resize (drop `setFixedSize`) once layouts are in place (after 5.1).
   - Now `layout()->setSizeConstraint(QLayout::SetFixedSize)`; graph and path view fixed 400x400.
 - [x] 5.4 Fix invalid stylesheet `font-weight: xbold` on `lblPathView`.
   - Done in 5.1: now `color: blue` with system fixed font.
-- [ ] 5.5 Remove or repurpose redundant Refresh button.
+- [x] 5.5 Remove or repurpose redundant Refresh button.
+  - Done: now checkable Auto Scale toggle (see 5.2).
 - [x] 5.6 Avoid hard-coded font in summary text where possible (use system fixed font).
   - Done in 5.1: summary and path label use QFontDatabase::FixedFont.
 
