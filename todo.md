@@ -43,11 +43,12 @@ Commit after each verified step.
   - Move `setPos`/`setRotation` from `paint()` into `setPose()`.
   - Test: slider moves mouse correctly, no visual lag or repaint storm.
 
-- [ ] 1.7 `Track` index and empty-track safety
+- [x] 1.7 `Track` index and empty-track safety
   - `set_turn_end()` stores record count (first leadout record), not last turn record:
     off by one for turn length, time, exit pose.
   - `get_max_*` dereference `max_element` on possibly empty vectors.
-  - Test: compare summary values before/after; exit theta should be closer to target angle.
+  - Result: finish index now last phase-3 record; exit x/y, distance -1 step (<= 1.09 mm),
+    time -1 ms; exit theta unchanged (leadout omega = 0). Empty track returns 0 / origin.
 
 - [ ] 1.8 Trapezoid omits initial `add_record` (other profiles have it)
   - Test: graph and breadcrumbs start at the same point for all profiles.

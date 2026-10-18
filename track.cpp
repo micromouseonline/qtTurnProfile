@@ -32,17 +32,23 @@ void Track::add_record(RobotState robot_state) {
 }
 
 float Track::get_max_alpha() const {
-    float max = *std::max_element(m_alpha.begin(), m_alpha.end());
-    return max;
+    if (m_alpha.empty()) {
+        return 0;
+    }
+    return *std::max_element(m_alpha.begin(), m_alpha.end());
 }
 
 float Track::get_max_omega() const {
-    float max = *std::max_element(m_omega.begin(), m_omega.end());
-    return max;
+    if (m_omega.empty()) {
+        return 0;
+    }
+    return *std::max_element(m_omega.begin(), m_omega.end());
 }
 
 float Track::get_max_acceleration() const {
-    float max = *std::max_element(m_acceleration.begin(), m_acceleration.end());
-    return max;
+    if (m_acceleration.empty()) {
+        return 0;
+    }
+    return *std::max_element(m_acceleration.begin(), m_acceleration.end());
 }
 
