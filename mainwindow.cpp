@@ -721,11 +721,7 @@ void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
 
 void MainWindow::on_rbTrapezoid_clicked() {
     turnProfile = PR_TRAPEZOID;
-    int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    ui->turnSpeedSpinBox->setValue(v + 1);  // TODO: why does this have  to happen
-    // twice? (also in related functions)
-    ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(true);
     ui->radiusSpinBox->setEnabled(true);
     ui->cubicLengthSpinBox->setEnabled(false);
@@ -735,10 +731,7 @@ void MainWindow::on_rbTrapezoid_clicked() {
 
 void MainWindow::on_rbQuadratic_clicked() {
     turnProfile = PR_QUADRATIC;
-    int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    ui->turnSpeedSpinBox->setValue(v + 1);
-    ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(true);
     ui->radiusSpinBox->setEnabled(true);
     ui->cubicLengthSpinBox->setEnabled(false);
@@ -748,10 +741,7 @@ void MainWindow::on_rbQuadratic_clicked() {
 
 void MainWindow::on_rbSinusoid_clicked() {
     turnProfile = PR_SINUSOID;
-    int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    ui->turnSpeedSpinBox->setValue(v + 1);
-    ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(true);
     ui->radiusSpinBox->setEnabled(true);
     ui->cubicLengthSpinBox->setEnabled(false);
@@ -761,10 +751,7 @@ void MainWindow::on_rbSinusoid_clicked() {
 
 void MainWindow::on_rbCubic_clicked() {
     turnProfile = PR_CUBIC;
-    int v = ui->turnSpeedSpinBox->value();
     setParams(turn);
-    ui->turnSpeedSpinBox->setValue(v + 1);
-    ui->turnSpeedSpinBox->setValue(v);
     ui->lambdaSpinBox->setEnabled(false);
     ui->radiusSpinBox->setEnabled(false);
     ui->cubicLengthSpinBox->setEnabled(true);
@@ -781,7 +768,7 @@ void MainWindow::setParams(int turn_index) {
     ui->radiusSpinBox->setValue(int(profileParams[turnProfile][turn_index].radius));
     ui->lambdaSpinBox->setValue(int(profileParams[turnProfile][turn_index].lambda));
     ui->offsetSpinBox->setValue(int(profileParams[turnProfile][turn_index].offs));
-    //  ui->turnSpeedSpinBox->setValue(int(params().speed));
+    ui->turnSpeedSpinBox->setValue(int(profileParams[turnProfile][turn_index].speed));
     ui->cubicLengthSpinBox->setValue(int(profileParams[turnProfile][turn_index].length));
 }
 

@@ -24,7 +24,7 @@ Commit after each verified step.
   - Test: edit SS90F radius, switch profile and back -> edit still present;
     Reset -> profile default restored.
 
-- [ ] 1.4 Turn speed not stored/restored per turn
+- [x] 1.4 Turn speed not stored/restored per turn
   - `currentParams[].speed` written, never read (`setParams` line commented out).
   - Test: set SS90F speed, change to SS180, check SS180 default speed; back to SS90F, check edited speed.
 
@@ -64,7 +64,8 @@ Commit after each verified step.
 
 ## 3. Structure
 
-- [ ] 3.1 Remove `setValue(v + 1); setValue(v);` workaround (TODO in profile slots)
+- [x] 3.1 Remove `setValue(v + 1); setValue(v);` workaround (TODO in profile slots)
+  - Done as part of 1.4 (workaround overwrote restored speed).
   - Call the recalculation directly instead.
   - Test: profile switch updates acceleration and plot as before.
 
