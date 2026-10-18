@@ -5,7 +5,7 @@ Commit after each verified step.
 
 ## 1. Bugs
 
-- [ ] 1.1 Remove duplicate signal connections
+- [x] 1.1 Remove duplicate signal connections
   - `mainwindow.cpp` ctor manually connects `btnReset` and `turnSpeedSpinBox`;
     `connectSlotsByName` already does this, so slots fire twice.
   - Test: add temporary qDebug in slots, confirm one call per click/change.

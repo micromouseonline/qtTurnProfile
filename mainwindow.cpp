@@ -34,10 +34,7 @@ TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
-
-    connect(ui->btnReset, SIGNAL(clicked(bool)), this, SLOT(on_btnReset_clicked()));
-    // spinboxes
-    connect(ui->turnSpeedSpinBox, SIGNAL(valueChanged(int)), this, SLOT(on_turnSpeedSpinBox_valueChanged(int)));
+    // on_<widget>_<signal> slots are auto-connected by setupUi (connectSlotsByName)
 
     for (int i = 0; i < TURN_TYPE_COUNT; i++) {
         currentParams[i] = defaultParams[i];
