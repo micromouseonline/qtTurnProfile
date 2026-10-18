@@ -46,6 +46,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindow
     slipTime = slipRect->axis(QCPAxis::atBottom);
     slipTime->setTickLabels(false);  // same scale as the time axis below
 
+    buildRowLabels();
+
     // every profile starts from its own defaults
     stored.resize(profile_registry().size());
     for (size_t p = 0; p < stored.size(); p++) {
@@ -115,10 +117,13 @@ void MainWindow::showTurnSummary() const {
     // slip left when omega reaches zero; it then decays with time constant tau (see SlipParams)
     float exit_slip = track.empty() ? 0 : track.get_slip_at(track.finish_index());
     ui->textEdit->append("    Exit Slip: " + QString::number(exit_slip, 'f', 1).rightJustified(6, ' ') + " deg");
-    for (const SummaryLine &line : profile().summary(turnSetup(), params().values)) {
+    std::vector<SummaryLine> lines = profile().summary(turnSetup(), params().values);
+    for (size_t i = 0; i < std::max(lines.size(), summaryRowLabels.size()); i++) {
+        // lines this profile does not have are shown as "-" so the summary keeps its length
+        const SummaryLine &line = i < lines.size() ? lines[i] : summaryRowLabels[i];
+        QString value = i < lines.size() ? QString::number(line.value, 'f', line.decimals) : QString("-");
         ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
-                             QString::number(line.value, 'f', line.decimals).rightJustified(6, ' ') + " " +
-                             QString::fromStdString(line.units));
+                             value.rightJustified(6, ' ') + " " + QString::fromStdString(line.units));
     }
 }
 
@@ -589,16 +594,44 @@ void MainWindow::buildProfileButtons() {
 }
 
 /**
+ * @brief Collect the labels for the padded parameter rows and summary lines.
+ *
+ * Row i takes its label from the first registered profile that has a
+ * parameter (or summary line) i, so a row keeps its label when a profile
+ * that does not use it is selected. Summary labels come from each profile's
+ * SS90F defaults.
+ */
+void MainWindow::buildRowLabels() {
+    for (const TurnProfile *p : profile_registry()) {
+        std::vector<ParamDef> defs = p->params();
+        for (size_t i = paramRowLabels.size(); i < defs.size(); i++) {
+            paramRowLabels.push_back(defs[i].label);
+        }
+        TurnSetup setup;
+        setup.turn_angle = turnGeometry[TURN_SS90F].angle;
+        std::vector<SummaryLine> lines = p->summary(setup, p->defaults(TURN_SS90F).values);
+        for (size_t i = summaryRowLabels.size(); i < lines.size(); i++) {
+            summaryRowLabels.push_back(lines[i]);
+        }
+    }
+}
+
+/**
  * @brief Replace the parameter rows with spinboxes for the current profile's parameters.
  *
  * Rows go after the speed and acceleration rows. Each spinbox stores its
- * value in params().values and repaints when changed.
+ * value in params().values and repaints when changed. Rows beyond the
+ * profile's parameters, up to paramRowLabels, are disabled and show "-".
  */
 void MainWindow::buildParamRows() {
     for (QDoubleSpinBox *box : paramBoxes) {
         ui->paramLayout->removeRow(box);  // deletes the label too
     }
+    for (QDoubleSpinBox *box : spareBoxes) {
+        ui->paramLayout->removeRow(box);
+    }
     paramBoxes.clear();
+    spareBoxes.clear();
     const int firstRow = 2;  // after speed and acceleration
     std::vector<ParamDef> defs = profile().params();
     for (size_t i = 0; i < defs.size(); i++) {
@@ -615,6 +648,17 @@ void MainWindow::buildParamRows() {
         connect(box, &QDoubleSpinBox::valueChanged, this, [this, i](double value) { paramChanged(int(i), value); });
         ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(def.label + ":"), box);
         paramBoxes.push_back(box);
+    }
+    for (size_t i = defs.size(); i < paramRowLabels.size(); i++) {
+        auto *box = new QDoubleSpinBox;
+        box->setObjectName(QString("param_unused_%1").arg(i));
+        box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+        box->setRange(0, 0);
+        box->setSpecialValueText("-");  // shown at the minimum, the only value
+        box->setEnabled(false);
+        box->setToolTip(tr("Not used by this profile"));
+        ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(paramRowLabels[i] + ":"), box);
+        spareBoxes.push_back(box);
     }
 }
 

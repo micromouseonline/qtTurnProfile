@@ -75,6 +75,13 @@ private:
     /// recalculations round from it once instead of accumulating rounding errors.
     double progressFraction = 0;
     std::vector<QDoubleSpinBox *> paramBoxes;   ///< spinboxes for the current profile's parameters
+    std::vector<QDoubleSpinBox *> spareBoxes;   ///< disabled rows padding paramBoxes to paramRowLabels
+    /// One label per parameter row: the most parameters any profile has. Row i is labelled
+    /// by the first profile with a parameter i; profiles with fewer show it disabled, so
+    /// the layout does not change between profiles.
+    std::vector<std::string> paramRowLabels;
+    /// Profile summary lines padded the same way (label and units; value unused)
+    std::vector<SummaryLine> summaryRowLabels;
 
     /// The current profile
     const TurnProfile &profile() const { return *profile_registry()[turnProfile]; }
@@ -90,6 +97,8 @@ private:
     void drawMazeWalls();
 
     void buildProfileButtons();
+
+    void buildRowLabels();
 
     void buildParamRows();
 
