@@ -9,6 +9,7 @@
 #include "track.h"
 #include "pathitem.h"
 #include "robotstate.h"
+#include "turn_physics.h"
 
 namespace Ui {
     class MainWindow;
@@ -27,14 +28,9 @@ struct TurnParams {
     float length;  // for cubics
 };
 
-
 // index inti the turn parameters table
 enum Turn_t {
     TURN_SS90F = 0, TURN_SS180, TURN_SD45, TURN_SD135, TURN_DS45, TURN_DS135, TURN_DD90, TURN_SS90E, TURN_TYPE_COUNT
-};
-
-enum Profile_t {
-    PR_TRAPEZOID, PR_QUADRATIC, PR_SINUSOID, PR_CUBIC, PR_COUNT
 };
 
 const float loopInterval = 0.001;
@@ -55,24 +51,12 @@ public:
 
     void drawMazeWalls();
 
-    void reset_track();
-
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;
 
 public slots:
 
-
     void rePaint();
-
-    void calculateTrapezoid(float start_x, float start_y);
-
-    void calculateQuadratic(float start_x, float start_y);
-
-    void calculateCubic(float start_x, float start_y);
-
-    void calculateSine(float start_x, float start_y);
-
 
 private slots:
 
@@ -127,6 +111,8 @@ private:
 
     float maxLambda() const;
 
+    TurnInput turnInput() const;
+
     float peakAcceleration(float speed) const;
 
     float speedForAcceleration(float acceleration) const;
@@ -145,7 +131,6 @@ private:
 
     void drawProfileGraph() const;
 
-    void calculate_leadout(RobotState &robot_state, float distance = 100);
 };
 
 #endif  // MAINWINDOW_H

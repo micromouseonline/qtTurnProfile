@@ -84,12 +84,17 @@ Commit after each verified step.
   - Use `QButtonGroup` with ids for the 8 turn types and the 4 profiles.
   - Test: every turn type and profile selectable, parameters load correctly.
 
-- [ ] 3.3 Move turn physics out of `MainWindow`
+- [x] 3.3 Move turn physics out of `MainWindow`
   - Plain C++ module (no Qt): input params struct -> `Track`.
   - Share common setup between trapezoid, quadratic and sine (only the omega
     transition function differs).
   - Test: summary values identical to pre-refactor for each turn/profile
     (record a reference table first).
+  - Done: `turn_physics.h/.cpp` (no Qt). `simulate_turn(profile, TurnInput, Track&)`,
+    `max_lambda`, `peak_acceleration`, `speed_for_acceleration`; `Profile_t` moved there.
+    Segmented profiles share one loop; each supplies transition angle, ramp, tolerance.
+  - Result: 128 reference cases; 119 bit-identical, 9 trapezoid differ by float
+    rounding only (exit <= 1.6e-5 mm/deg, record counts identical).
 
 - [ ] 3.4 Extensible profile types (builds on 3.2, 3.3)
   - Goal: adding a profile = one new source file + one registry line, no MainWindow edits.

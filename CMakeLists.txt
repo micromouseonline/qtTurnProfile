@@ -27,6 +27,8 @@ set(SOURCE_FILES
         pose.h
         track.h
         track.cpp
+        turn_physics.h
+        turn_physics.cpp
         resources.qrc
         pathitem.cpp
         pathitem.h
