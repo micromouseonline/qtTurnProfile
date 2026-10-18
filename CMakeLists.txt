@@ -36,7 +36,8 @@ set(PHYSICS_SOURCES
 
 set(SOURCE_FILES
         ${PHYSICS_SOURCES}
-        ui_mainwindow.h
+        main_window_ui.h
+        main_window_ui.cpp
         mouseitem.cpp
         mouseitem.h
         main.cpp

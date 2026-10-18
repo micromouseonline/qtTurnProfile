@@ -1,17 +1,31 @@
 #include "mainwindow.h"
 #include <QButtonGroup>
 #include <QDoubleSpinBox>
-#include <QLabel>
+#include <QFormLayout>
+#include <QGraphicsView>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QSlider>
+#include <QSpinBox>
+#include <QTextEdit>
 #include <cmath>
 #include <algorithm>
-#include "ui_mainwindow.h"
+#include "main_window_ui.h"
 #include "angles.h"
 #include "track.h"
 #include "robotstate.h"
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindowUi) {
     ui->setupUi(this);
-    // on_<widget>_<signal> slots are auto-connected by setupUi (connectSlotsByName)
+    connect(ui->btnRefresh, &QPushButton::clicked, this, &MainWindow::rePaint);
+    connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::resetTurn);
+    connect(ui->startXSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
+    connect(ui->startYSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
+    connect(ui->progressSlider, &QSlider::valueChanged, this, &MainWindow::showProgress);
+    connect(ui->accelerationSpinBox, &QSpinBox::valueChanged, this, &MainWindow::accelerationChanged);
+    connect(ui->turnSpeedSpinBox, &QSpinBox::valueChanged, this, &MainWindow::speedChanged);
+    connect(ui->offsetSpinBox, &QSpinBox::valueChanged, this, &MainWindow::offsetChanged);
+    connect(ui->sensorAngleSpinBox, &QSpinBox::valueChanged, this, &MainWindow::sensorAngleChanged);
 
     // every profile starts from its own defaults
     stored.resize(profile_registry().size());
@@ -36,29 +50,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // button ids are the Turn_t values
 
     turnGroup = new QButtonGroup(this);
-    turnGroup->addButton(ui->rbSS90F, TURN_SS90F);
-    turnGroup->addButton(ui->rbSS180, TURN_SS180);
-    turnGroup->addButton(ui->rbSD45, TURN_SD45);
-    turnGroup->addButton(ui->rbSD135, TURN_SD135);
-    turnGroup->addButton(ui->rbDS45, TURN_DS45);
-    turnGroup->addButton(ui->rbDS135, TURN_DS135);
-    turnGroup->addButton(ui->rbDD90, TURN_DD90);
-    turnGroup->addButton(ui->rbSS90E, TURN_SS90E);
+    for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+        turnGroup->addButton(ui->turnButtons[t], t);
+    }
     connect(turnGroup, &QButtonGroup::idClicked, this, &MainWindow::selectTurn);
 
     profileGroup->button(0)->click();
-    ui->rbSS90F->click();
+    ui->turnButtons[TURN_SS90F]->click();
     setWindowTitle(tr("Turn Render"));
-    // now we have everything set up, top the window from resizing
-    setFixedSize(840, 820);
+    // the window fits its contents and cannot be resized
+    layout()->setSizeConstraint(QLayout::SetFixedSize);
 }
 
 MainWindow::~MainWindow() {
     delete ui;
-}
-
-void MainWindow::on_btnRefresh_clicked() {
-    rePaint();
 }
 
 void MainWindow::showTurnSummary() const {
@@ -214,7 +219,8 @@ void MainWindow::drawBreadcrumbs() {
     }
 }
 
-void MainWindow::on_btnReset_clicked() {
+/// Restore the profile defaults for the current turn and repaint
+void MainWindow::resetTurn() {
     TurnDefaults d = profile().defaults(turn);
     params() = {d.offset, d.speed, d.values};
     setParams(turn);
@@ -281,13 +287,12 @@ void MainWindow::drawMazeWalls() {
     mouseScene->addEllipse(-5, -5, 10, 10);
 }
 
-void MainWindow::on_progressSlider_valueChanged(int value) {
-    (void) value;
-    showProgress();
-}
-
-void MainWindow::on_accelerationSpinBox_valueChanged(int arg1) {
-    float turnAcceleration = arg1;
+/**
+ * @brief The acceleration box changed: derive the speed from it and repaint.
+ * @param acceleration peak centripetal acceleration, mm/s/s
+ */
+void MainWindow::accelerationChanged(int acceleration) {
+    float turnAcceleration = acceleration;
     float turnSpeed = speedForAcceleration(turnAcceleration);
     params().speed = turnSpeed;
     ui->turnSpeedSpinBox->blockSignals(true);
@@ -296,25 +301,23 @@ void MainWindow::on_accelerationSpinBox_valueChanged(int arg1) {
     rePaint();
 }
 
-void MainWindow::on_startYSpinBox_valueChanged(int arg1) {
-    (void) arg1;
-    rePaint();
-}
-
-void MainWindow::on_startXSpinBox_valueChanged(int arg1) {
-    (void) arg1;
-    rePaint();
-}
-
-void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
-    float turnSpeed = arg1;
+/**
+ * @brief The speed box changed: store it, update the acceleration box and repaint.
+ * @param speed turn speed, mm/s
+ */
+void MainWindow::speedChanged(int speed) {
+    float turnSpeed = speed;
     params().speed = turnSpeed;
     updateAccelerationBox();
     rePaint();
 }
 
-void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
-    params().offset = arg1;
+/**
+ * @brief The offset box changed: store it, move the start position and repaint.
+ * @param offset start offset back from the turn base point, mm
+ */
+void MainWindow::offsetChanged(int offset) {
+    params().offset = offset;
     updateStartPosition();
     rePaint();
 }
@@ -338,8 +341,12 @@ void MainWindow::updateStartPosition() {
     ui->startYSpinBox->blockSignals(false);
 }
 
-void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
-    theMouse->setSensorAngle(arg1);
+/**
+ * @brief The sensor angle box changed: redraw the mouse sensors.
+ * @param angle sensor angle, degrees
+ */
+void MainWindow::sensorAngleChanged(int angle) {
+    theMouse->setSensorAngle(angle);
     rePaint();
 }
 
@@ -439,7 +446,7 @@ void MainWindow::constrainParams() {
 /**
  * @brief Create one radio button per registered profile in the Turn Profile box.
  *
- * Button ids are registry indices. The box is resized to fit.
+ * Button ids are registry indices.
  */
 void MainWindow::buildProfileButtons() {
     profileGroup = new QButtonGroup(this);
@@ -447,33 +454,28 @@ void MainWindow::buildProfileButtons() {
     for (size_t i = 0; i < profiles.size(); i++) {
         auto *button = new QRadioButton(QString::fromStdString(profiles[i]->name()), ui->gbTurnProfile);
         button->setToolTip(QString::fromStdString(profiles[i]->description()));
-        ui->vlProfiles->addWidget(button);
+        ui->profileLayout->addWidget(button);
         profileGroup->addButton(button, int(i));
     }
     connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
-    ui->gbTurnProfile->resize(ui->gbTurnProfile->width(), ui->gbTurnProfile->sizeHint().height());
 }
 
 /**
  * @brief Replace the parameter rows with spinboxes for the current profile's parameters.
  *
- * Each spinbox stores its value in params().values and repaints when changed.
+ * Rows go after the speed and acceleration rows. Each spinbox stores its
+ * value in params().values and repaints when changed.
  */
 void MainWindow::buildParamRows() {
-    for (QLabel *label : paramLabels) {
-        delete label;
-    }
     for (QDoubleSpinBox *box : paramBoxes) {
-        delete box;
+        ui->paramLayout->removeRow(box);  // deletes the label too
     }
-    paramLabels.clear();
     paramBoxes.clear();
+    const int firstRow = 2;  // after speed and acceleration
     std::vector<ParamDef> defs = profile().params();
     for (size_t i = 0; i < defs.size(); i++) {
         const ParamDef &def = defs[i];
-        auto *label = new QLabel(QString::fromStdString(def.label + ":"), ui->gbSpinners);
-        label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        auto *box = new QDoubleSpinBox(ui->gbSpinners);
+        auto *box = new QDoubleSpinBox;
         box->setObjectName(QString::fromStdString("param_" + def.id));
         box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
         box->setAccelerated(true);
@@ -482,34 +484,9 @@ void MainWindow::buildParamRows() {
         box->setSingleStep(def.step);
         box->setToolTip(QString::fromStdString(def.label + " (" + def.units + ")"));
         connect(box, &QDoubleSpinBox::valueChanged, this, [this, i](double value) { paramChanged(int(i), value); });
-        label->show();
-        box->show();
-        paramLabels.push_back(label);
+        ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(def.label + ":"), box);
         paramBoxes.push_back(box);
     }
-    layoutParameterBox();
-}
-
-/**
- * @brief Position the rows of the Parameters box and fit its height.
- *
- * Order: speed, acceleration, the profile's parameters, offset, sensor angle.
- */
-void MainWindow::layoutParameterBox() {
-    const int rowStep = 30;
-    int row = 2;  // speed and acceleration are fixed in rows 0 and 1
-    auto place = [&](QWidget *label, QWidget *box) {
-        int y = rowStep + row * rowStep;
-        label->setGeometry(10, y, 55, 24);
-        box->setGeometry(70, y, 70, 24);
-        row++;
-    };
-    for (size_t i = 0; i < paramBoxes.size(); i++) {
-        place(paramLabels[i], paramBoxes[i]);
-    }
-    place(ui->lblOffset, ui->offsetSpinBox);
-    place(ui->lblSensorAngle, ui->sensorAngleSpinBox);
-    ui->gbSpinners->resize(ui->gbSpinners->width(), rowStep * row + 50);
 }
 
 /**

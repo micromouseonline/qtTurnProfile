@@ -11,9 +11,7 @@
 #include <vector>
 #include "turn_profile.h"
 
-namespace Ui {
-    class MainWindow;
-}
+struct MainWindowUi;
 
 const float loopInterval = 0.001;
 
@@ -28,7 +26,6 @@ class QButtonGroup;
 class QDoubleSpinBox;
 class QGraphicsItemGroup;
 class QGraphicsScene;
-class QLabel;
 
 class MainWindow : public QMainWindow {
 Q_OBJECT
@@ -48,23 +45,15 @@ private slots:
 
     void selectTurn(int turn_index);
 
-    void on_btnReset_clicked();
+    void resetTurn();
 
-    void on_btnRefresh_clicked();
+    void accelerationChanged(int acceleration);
 
-    void on_startYSpinBox_valueChanged(int arg1);
+    void speedChanged(int speed);
 
-    void on_startXSpinBox_valueChanged(int arg1);
+    void offsetChanged(int offset);
 
-    void on_progressSlider_valueChanged(int value);
-
-    void on_accelerationSpinBox_valueChanged(int arg1);
-
-    void on_turnSpeedSpinBox_valueChanged(int arg1);
-
-    void on_offsetSpinBox_valueChanged(int arg1);
-
-    void on_sensorAngleSpinBox_valueChanged(int arg1);
+    void sensorAngleChanged(int angle);
 
 private:
     /// Working values, indexed [profile][turn]. Edits persist until reset;
@@ -73,13 +62,12 @@ private:
     Track track;  ///< the simulated turn and leadout
     Turn_t turn = TURN_SS90F;
     int turnProfile = 0;  ///< index into profile_registry()
-    Ui::MainWindow *ui;
+    MainWindowUi *ui;
     MouseItem *theMouse;
     QGraphicsScene *mouseScene;
     QButtonGroup *profileGroup;  ///< profile radio buttons, id = registry index
     QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
     QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
-    std::vector<QLabel *> paramLabels;          ///< labels for the current profile's parameters
     std::vector<QDoubleSpinBox *> paramBoxes;   ///< spinboxes for the current profile's parameters
 
     /// The current profile
@@ -98,8 +86,6 @@ private:
     void buildProfileButtons();
 
     void buildParamRows();
-
-    void layoutParameterBox();
 
     void paramChanged(int index, double value);
 

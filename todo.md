@@ -159,16 +159,22 @@ Commit after each verified step.
 
 ## 5. UI
 
-- [ ] 5.1 Replace hand-edited `ui_mainwindow.h`
+- [x] 5.1 Replace hand-edited `ui_mainwindow.h`
   - Real `.ui` file (AUTOUIC) or layout-based code; removes fixed geometry and
     deprecated `QApplication::translate(..., 0)`; fix `gpTurnType` object name.
   - Test: all widgets present and named, app behaves as before; check Fusion and Breeze.
+  - Done: `main_window_ui.h/.cpp` (MainWindowUi) builds widgets with layouts; turn buttons generated;
+    profile param rows via QFormLayout insertRow/removeRow; explicit new-style connects (no
+    connectSlotsByName); system fixed font; window fits contents (SetFixedSize, 824x757 Fusion).
 - [ ] 5.2 Auto-scale graph axes (currently fixed 0-0.5 s, 0-1600 deg/s, 0-3200 mm/s)
   - Test: SS180 at low speed fully visible.
 - [ ] 5.3 Allow window resize (drop `setFixedSize`) once layouts are in place (after 5.1).
-- [ ] 5.4 Fix invalid stylesheet `font-weight: xbold` on `lblPathView`.
+  - Now `layout()->setSizeConstraint(QLayout::SetFixedSize)`; graph and path view fixed 400x400.
+- [x] 5.4 Fix invalid stylesheet `font-weight: xbold` on `lblPathView`.
+  - Done in 5.1: now `color: blue` with system fixed font.
 - [ ] 5.5 Remove or repurpose redundant Refresh button.
-- [ ] 5.6 Avoid hard-coded font in summary text where possible (use system fixed font).
+- [x] 5.6 Avoid hard-coded font in summary text where possible (use system fixed font).
+  - Done in 5.1: summary and path label use QFontDatabase::FixedFont.
 
 ## 6. Deployment (optional)
 
