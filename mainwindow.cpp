@@ -324,6 +324,10 @@ void MainWindow::drawMazeWalls() {
 
 /**
  * @brief The acceleration box changed: derive the speed from it and repaint.
+ *
+ * If the speed box range clamps the derived speed, the clamped speed is
+ * stored and the acceleration box is corrected to match it.
+ *
  * @param acceleration peak centripetal acceleration, mm/s/s
  */
 void MainWindow::accelerationChanged(int acceleration) {
@@ -333,6 +337,10 @@ void MainWindow::accelerationChanged(int acceleration) {
     ui->turnSpeedSpinBox->blockSignals(true);
     ui->turnSpeedSpinBox->setValue(qRound(turnSpeed));
     ui->turnSpeedSpinBox->blockSignals(false);
+    if (ui->turnSpeedSpinBox->value() != qRound(turnSpeed)) {
+        params().speed = ui->turnSpeedSpinBox->value();
+        updateAccelerationBox();
+    }
     rePaint();
 }
 

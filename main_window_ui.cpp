@@ -107,7 +107,8 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     gbSpinners->setObjectName("gbSpinners");
     paramLayout = makeForm(gbSpinners);
     turnSpeedSpinBox = makeSpinBox("turnSpeedSpinBox", 100, 3000, 10, 1000);
-    accelerationSpinBox = makeSpinBox("accelerationSpinBox", 1000, 70000, 100, 9800);
+    // covers every reachable peak: speed 3000 with cubic length 50 on SS180 is about 848000
+    accelerationSpinBox = makeSpinBox("accelerationSpinBox", 0, 1000000, 100, 9800);
     offsetSpinBox = makeSpinBox("offsetSpinBox", -270, 200, 1, 0);
     sensorAngleSpinBox = makeSpinBox("sensorAngleSpinBox", 0, 98, 1, 30);
     paramLayout->addRow(tr("Speed:"), turnSpeedSpinBox);
