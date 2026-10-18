@@ -607,6 +607,7 @@ void MainWindow::buildParamRows() {
         box->setObjectName(QString::fromStdString("param_" + def.id));
         box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
         box->setAccelerated(true);
+        box->setKeyboardTracking(false);  // typed values take effect on Enter or focus loss
         box->setDecimals(def.decimals);
         box->setRange(def.min, def.max);
         box->setSingleStep(def.step);

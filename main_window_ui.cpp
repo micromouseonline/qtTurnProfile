@@ -55,6 +55,11 @@ protected:
 
 /**
  * @brief Make a right aligned integer spinbox.
+ *
+ * Keyboard tracking is off: a typed value takes effect on Enter, focus loss or
+ * the arrows, not on every keystroke. Partly typed values would otherwise be
+ * acted on, and e.g. a partial acceleration clamps the speed and rewrites the
+ * box while typing.
  * @param name object name
  * @param min minimum value
  * @param max maximum value
@@ -68,11 +73,12 @@ QSpinBox *makeSpinBox(const char *name, int min, int max, int step, int value) {
     box->setRange(min, max);
     box->setSingleStep(step);
     box->setValue(value);
+    box->setKeyboardTracking(false);
     return box;
 }
 
 /**
- * @brief Make a right aligned spinbox with one decimal.
+ * @brief Make a right aligned spinbox with one decimal; keyboard tracking off, as makeSpinBox().
  * @param name object name
  * @param min minimum value
  * @param max maximum value
@@ -86,6 +92,7 @@ QDoubleSpinBox *makeDoubleSpinBox(const char *name, double min, double max, doub
     box->setRange(min, max);
     box->setSingleStep(0.1);
     box->setValue(value);
+    box->setKeyboardTracking(false);
     return box;
 }
 
