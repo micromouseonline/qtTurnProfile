@@ -21,6 +21,18 @@ TurnParams defaultParams[TURN_TYPE_COUNT] = {
         {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
 };
 
+// as defaultParams, but SD45 lambda reduced: 65 exceeds the quadratic limit (64) at radius 110
+TurnParams quadraticParams[TURN_TYPE_COUNT] = {
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 2200, .length = 248},    // SS90F
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 2000, .length = 370},    // SS180
+        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 60, .radius = 110, .startAngle = 0, .angle = 45, .speed = 2200, .length = 134},     // SD45
+        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 1800, .length = 266},     // SD135
+        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 2200, .length = 144},   // DS45
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 1800, .length = 257},  // DS135
+        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 1800, .length = 173},   // DD90
+        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 1000, .length = 124},       // SS90E
+};
+
 TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
         {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 96, .startAngle = 0, .angle = 90, .speed = 2200, .length = 248},     // SS90F
         {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 82, .startAngle = 0, .angle = 180, .speed = 2000, .length = 370},    // SS180
@@ -38,7 +50,14 @@ TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
  * @return table of TURN_TYPE_COUNT entries the profile starts from and resets to
  */
 static const TurnParams *profileDefaults(int profile) {
-    return (profile == PR_TRAPEZOID) ? trapezoidParams : defaultParams;
+    switch (profile) {
+        case PR_TRAPEZOID:
+            return trapezoidParams;
+        case PR_QUADRATIC:
+            return quadraticParams;
+        default:
+            return defaultParams;
+    }
 }
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -96,9 +115,13 @@ void MainWindow::showTurnSummary() const {
     ui->textEdit->append("     Distance: " + QString::number(g_track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("         Time: " + QString::number(g_track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
     ui->textEdit->append("   Exit Speed: " + QString::number(g_track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
+    if (turnProfile != PR_CUBIC) {
+        ui->textEdit->append("   Lambda Max: " + QString::number(int(maxLambda())).rightJustified(6, ' ') + " mm");
+    }
 }
 
 void MainWindow::rePaint() {
+    clampLambda();
     drawMazeWalls();
     float turnAcceleration = ui->accelerationSpinBox->value();
     float start_x = ui->startXSpinBox->value();
@@ -413,7 +436,9 @@ void MainWindow::calculateTrapezoid(float start_x, float start_y) {
     // after 180 mm of forward travel.
     // You can carry residual errors through to the subsequent straight for
     // correction if desired.
-    while (robot_state.theta < endAngle - 0.1) {
+    // the distance limit ends the turn if step size leaves theta short of the end;
+    // beyond turnDistance omega goes negative and the loop would never finish
+    while (robot_state.theta < endAngle - 0.1 && robot_state.distance < turnDistance) {
         if (robot_state.theta < startAngle + transitionAngle) {
             robot_state.omega = turnOmega * robot_state.distance / lambda;
             robot_state.phase = 1;
@@ -577,7 +602,9 @@ void MainWindow::calculateQuadratic(float start_x, float start_y) {
     // after 180 mm of forward travel.
     // You can carry residual errors through to the subsequent straight for
     // correction if desired.
-    while (robot_state.theta < endAngle - 0.01) {
+    // the distance limit ends the turn if step size leaves theta short of the end;
+    // beyond turnDistance omega goes negative and the loop would never finish
+    while (robot_state.theta < endAngle - 0.01 && robot_state.distance < turnDistance) {
         if (robot_state.theta < startAngle + transitionAngle) {
             float t = (robot_state.distance / lambda);
             robot_state.omega = turnOmega * t * (2.0 - t);
@@ -664,7 +691,9 @@ void MainWindow::calculateSine(float start_x, float start_y) {
     // after 180 mm of forward travel.
     // You can carry residual errors through to the subsequent straight for
     // correction if desired.
-    while (robot_state.theta < endAngle - 0.01) {
+    // the distance limit ends the turn if step size leaves theta short of the end;
+    // beyond turnDistance omega goes negative and the loop would never finish
+    while (robot_state.theta < endAngle - 0.01 && robot_state.distance < turnDistance) {
         if (robot_state.theta < (startAngle + transitionAngle)) {
             robot_state.omega = turnOmega * sin((PI / 2) * robot_state.distance / lambda);
             robot_state.phase = 1;
@@ -765,11 +794,59 @@ void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::setParams(int turn_index) {
+    // spinbox handlers repaint as each value loads; suppress lambda clamping
+    // until all values for the new turn are in place
+    loadingParams = true;
     ui->radiusSpinBox->setValue(int(profileParams[turnProfile][turn_index].radius));
     ui->lambdaSpinBox->setValue(int(profileParams[turnProfile][turn_index].lambda));
     ui->offsetSpinBox->setValue(int(profileParams[turnProfile][turn_index].offs));
     ui->turnSpeedSpinBox->setValue(int(profileParams[turnProfile][turn_index].speed));
     ui->cubicLengthSpinBox->setValue(int(profileParams[turnProfile][turn_index].length));
+    loadingParams = false;
+}
+
+/**
+ * @brief Largest lambda that leaves a non-negative constant radius arc.
+ *
+ * Each transition turns through k * lambda / radius radians, with k = 1/2
+ * (trapezoid), 2/3 (quadratic) or 2/pi (sinusoid). Both transitions must fit
+ * in the turn angle, so lambda <= angle * radius / (2k). A larger lambda makes
+ * phase 3 overrun, omega goes negative and the turn never completes.
+ *
+ * @return maximum lambda in mm; unlimited for the cubic profile
+ */
+float MainWindow::maxLambda() const {
+    float radius = ui->radiusSpinBox->value();
+    float angle = RADIANS(profileParams[turnProfile][turn].angle);
+    switch (turnProfile) {
+        case PR_TRAPEZOID:
+            return angle * radius;
+        case PR_QUADRATIC:
+            return 0.75f * angle * radius;
+        case PR_SINUSOID:
+            return float(PI / 4) * angle * radius;
+        default:
+            return 1e9f;
+    }
+}
+
+/**
+ * @brief Reduce lambda to maxLambda() if it is too large.
+ *
+ * Updates the spinbox (without signals) and the stored parameter. Skipped
+ * while setParams() is loading, as radius and lambda may belong to different turns.
+ */
+void MainWindow::clampLambda() {
+    if (loadingParams) {
+        return;
+    }
+    int limit = int(maxLambda());
+    if (ui->lambdaSpinBox->value() > limit) {
+        ui->lambdaSpinBox->blockSignals(true);
+        ui->lambdaSpinBox->setValue(limit);
+        ui->lambdaSpinBox->blockSignals(false);
+        params().lambda = limit;
+    }
 }
 
 void MainWindow::on_rbSS90F_clicked() {

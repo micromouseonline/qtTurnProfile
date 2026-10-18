@@ -28,9 +28,16 @@ Commit after each verified step.
   - `currentParams[].speed` written, never read (`setParams` line commented out).
   - Test: set SS90F speed, change to SS180, check SS180 default speed; back to SS90F, check edited speed.
 
-- [ ] 1.5 Lambda = 0 gives divide by zero / NaN
-  - Set `lambdaSpinBox` minimum > 0, and/or guard in calculations.
-  - Test: try lambda at min for each profile, no NaN in summary, sane path.
+- [x] 1.5 Infinite loop when lambda too large for radius/angle (was: lambda = 0 NaN)
+  - Lambda = 0 tested: harmless, gives a pure arc. Original claim wrong.
+  - Cause: 2 * transition angle > turn angle -> negative mid arc, phase 3 overruns,
+    omega goes negative, theta never reaches end -> hang. Quadratic SD45 defaults
+    hung (pre-existing). Very small radius hung quadratic via step-size error.
+  - Fix: lambda clamped to max (spinbox + stored value), "Lambda Max" in summary;
+    quadratic has own defaults table (SD45 lambda 60); turn loops also end at
+    turnDistance.
+  - Tested: all 3 profiles x 8 turns at defaults, lambda 200, radius 15; defaults and
+    lambda 200 results unchanged by the distance limit.
 
 - [ ] 1.6 `MouseItem::paint` changes item geometry
   - Move `setPos`/`setRotation` from `paint()` into `setPose()`.
