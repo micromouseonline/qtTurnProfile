@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindow
     connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::resetTurn);
     connect(ui->startXSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
     connect(ui->startYSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
-    connect(ui->progressSlider, &QSlider::valueChanged, this, &MainWindow::showProgress);
+    connect(ui->progressSlider, &QSlider::valueChanged, this, &MainWindow::sliderMoved);
     connect(ui->accelerationSpinBox, &QSpinBox::valueChanged, this, &MainWindow::accelerationChanged);
     connect(ui->turnSpeedSpinBox, &QSpinBox::valueChanged, this, &MainWindow::speedChanged);
     connect(ui->offsetSpinBox, &QSpinBox::valueChanged, this, &MainWindow::offsetChanged);
@@ -93,14 +93,32 @@ void MainWindow::showTurnSummary() const {
     }
 }
 
+/**
+ * @brief Recalculate the turn and redraw everything.
+ *
+ * The progress slider is set from progressFraction, so the mouse stays at
+ * the same relative position when the turn length or speed changes.
+ */
 void MainWindow::rePaint() {
     constrainParams();
     profile().simulate(turnSetup(), ui->turnSpeedSpinBox->value(), params().values, track);
     showTurnSummary();
-    ui->progressSlider->setMinimum(0);
-    ui->progressSlider->setMaximum(track.finish_index());
+    ui->progressSlider->blockSignals(true);  // showProgress() runs below
+    ui->progressSlider->setRange(0, track.finish_index());
+    ui->progressSlider->setValue(qRound(progressFraction * track.finish_index()));
+    ui->progressSlider->blockSignals(false);
     drawBreadcrumbs();
     drawProfileGraph();
+    showProgress();
+}
+
+/**
+ * @brief The user moved the progress slider: remember the fraction and show the mouse there.
+ * @param value slider position, a track record index
+ */
+void MainWindow::sliderMoved(int value) {
+    int max = ui->progressSlider->maximum();
+    progressFraction = max > 0 ? double(value) / max : 0;
     showProgress();
 }
 
@@ -563,6 +581,6 @@ void MainWindow::selectProfile(int profile_index) {
 void MainWindow::selectTurn(int turn_index) {
     turn = Turn_t(turn_index);
     setParams(turn);
-    ui->progressSlider->setValue(0);
+    progressFraction = 0;
     rePaint();
 }

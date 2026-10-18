@@ -68,6 +68,9 @@ private:
     QButtonGroup *profileGroup;  ///< profile radio buttons, id = registry index
     QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
     QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
+    /// Slider position as a fraction of the turn, 0..1. Changed only by the user, so
+    /// recalculations round from it once instead of accumulating rounding errors.
+    double progressFraction = 0;
     std::vector<QDoubleSpinBox *> paramBoxes;   ///< spinboxes for the current profile's parameters
 
     /// The current profile
@@ -100,6 +103,8 @@ private:
     void updateStartPosition();
 
     void constrainParams();
+
+    void sliderMoved(int value);
 
     void showProgress();
 
