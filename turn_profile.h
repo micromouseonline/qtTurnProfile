@@ -45,6 +45,7 @@ struct TurnSetup {
     float turn_angle = 0;    ///< total turn angle, degrees
     float interval = 0.001f; ///< simulation time step, s
     float leadout = 100;     ///< straight distance recorded after the turn, mm
+    SlipParams slip{};       ///< tyre slip model; default is no slip
 };
 
 /// Description of one profile parameter, used to build its spinbox

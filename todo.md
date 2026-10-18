@@ -202,20 +202,18 @@ Commit after each verified step.
 
 ## 7. Features
 
-- [ ] 7.1 Simulate tyre slip and slip angle
-  - Currently ideal kinematics: velocity always along heading, no slip.
-  - Model lateral slip: velocity direction differs from heading by slip angle;
-    lateral tyre force from slip angle (e.g. linear cornering stiffness,
-    saturating at mu * normal load).
-  - Possibly longitudinal slip per wheel (relevant for cubic gamma braking).
-  - New robot/tyre parameters (mass, mu, cornering stiffness, etc.), shared
-    across profiles, not per profile.
-  - Outputs: slip angle vs time on graph, actual vs ideal path in path view,
-    exit position/heading error in summary.
-  - Depends on 3.3 (physics module) and 3.4 (parameter handling).
-  - Test: slip off (or very high stiffness) reproduces ideal results; slip angle
-    grows with speed/centripetal acceleration; path drifts outward.
-  - Open: model choice and parameter values to be decided before starting.
+- [x] 7.1 Simulate tyre slip and slip angle
+  - Simplified model: lateral slip only (constant speed, no per-wheel slip), steady state,
+    linear, no saturation. Heading follows commanded omega (gyro); velocity direction =
+    heading - slip, slip = gradient * (a / g) / load factor.
+  - Controls (Slip box, shared by all profiles/turns): Gradient deg/g (0 = off), measured
+    across a slope without fan as crab angle / tan(slope); Load = (weight + downforce) / weight.
+  - Done: `SlipParams` and slip in `RobotState::update()` (robotstate.h), `TurnSetup::slip`,
+    `Track` slip per record. Ideal (no slip) path drawn faint; slip trace on own graph axis;
+    velocity arrow shows slip; summary Max Slip, Exit dX/dY vs ideal.
+  - Result: gradient 0 -> 88 baseline cases unchanged. Slip tests (all profiles x turns):
+    heading/length/count unchanged, peak slip = formula (1%), exit outward, 2x load -> 1/2,
+    2x speed -> 4x. SS90F sinusoid default at 5.5 deg/g: 5.5 deg, exit (-11.2, -10.2) mm.
 
 - [ ] 7.2 Rework phase calculation for segmented turns (trapezoid, quadratic, sinusoid)
   - Phases currently switch on theta, which lags by a step; turn loops also stop at turnDistance (1.5).

@@ -14,6 +14,7 @@
 #include "turn_profile.h"
 
 class QCustomPlot;
+class QDoubleSpinBox;
 class QFormLayout;
 class QGraphicsView;
 class QGroupBox;
@@ -48,11 +49,13 @@ struct MainWindowUi {
     QTextEdit *textEdit;       ///< turn summary, read only
 
     QGroupBox *gbSpinners;     ///< Parameters box
-    QFormLayout *paramLayout;  ///< rows: speed, acc, profile params, offset, sensors
+    QFormLayout *paramLayout;  ///< rows: speed, acc, profile params, offset, sensors, slip gradient, load
     QSpinBox *turnSpeedSpinBox;
     QSpinBox *accelerationSpinBox;
     QSpinBox *offsetSpinBox;
     QSpinBox *sensorAngleSpinBox;
+    QDoubleSpinBox *slipGradientSpinBox;  ///< tyre slip angle per g, deg/g; 0 = no slip; all profiles
+    QDoubleSpinBox *loadFactorSpinBox;    ///< tyre normal load / weight; 1 = no fan; all profiles
 
     QGroupBox *gbTurnType;     ///< Turn Type box
     std::array<QRadioButton *, TURN_TYPE_COUNT> turnButtons;  ///< indexed by Turn_t

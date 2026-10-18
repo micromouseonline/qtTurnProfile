@@ -26,6 +26,25 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindow
     connect(ui->turnSpeedSpinBox, &QSpinBox::valueChanged, this, &MainWindow::speedChanged);
     connect(ui->offsetSpinBox, &QSpinBox::valueChanged, this, &MainWindow::offsetChanged);
     connect(ui->sensorAngleSpinBox, &QSpinBox::valueChanged, this, &MainWindow::sensorAngleChanged);
+    connect(ui->slipGradientSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
+    connect(ui->loadFactorSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
+
+    // slip plot above the speed plot, a quarter of the height. The margin group
+    // gives both the same left and right margins, so their time axes line up.
+    QCPAxisRect *mainRect = ui->customPlot->axisRect();
+    auto *slipRect = new QCPAxisRect(ui->customPlot);
+    ui->customPlot->plotLayout()->insertRow(0);
+    ui->customPlot->plotLayout()->addElement(0, 0, slipRect);
+    ui->customPlot->plotLayout()->setRowStretchFactors({1, 3});
+    auto *margins = new QCPMarginGroup(ui->customPlot);
+    mainRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
+    slipRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
+    slipAxis = slipRect->axis(QCPAxis::atLeft);
+    slipAxis->setLabel("Slip (deg)");
+    slipAxis->setLabelColor(Qt::red);
+    slipAxis->ticker()->setTickCount(3);  // short axis: 0, 10, 20, 30
+    slipTime = slipRect->axis(QCPAxis::atBottom);
+    slipTime->setTickLabels(false);  // same scale as the time axis below
 
     // every profile starts from its own defaults
     stored.resize(profile_registry().size());
@@ -86,6 +105,11 @@ void MainWindow::showTurnSummary() const {
     ui->textEdit->append("     Distance: " + QString::number(track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("         Time: " + QString::number(track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
     ui->textEdit->append("   Exit Speed: " + QString::number(track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
+    // slip moves only the position: exit error is the offset from the no slip exit point
+    Pose ideal_exit = idealTrack.get_exit_pose();
+    ui->textEdit->append("     Max Slip: " + QString::number(track.get_max_slip(), 'f', 1).rightJustified(6, ' ') + " deg");
+    ui->textEdit->append("      Exit dX: " + QString::number(exit_pose.x() - ideal_exit.x(), 'f', 1).rightJustified(6, ' ') + " mm");
+    ui->textEdit->append("      Exit dY: " + QString::number(exit_pose.y() - ideal_exit.y(), 'f', 1).rightJustified(6, ' ') + " mm");
     for (const SummaryLine &line : profile().summary(turnSetup(), params().values)) {
         ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
                              QString::number(line.value, 'f', line.decimals).rightJustified(6, ' ') + " " +
@@ -96,12 +120,21 @@ void MainWindow::showTurnSummary() const {
 /**
  * @brief Recalculate the turn and redraw everything.
  *
- * The progress slider is set from progressFraction, so the mouse stays at
- * the same relative position when the turn length or speed changes.
+ * With slip on, the turn is also simulated without slip for comparison
+ * (idealTrack). The progress slider is set from progressFraction, so the
+ * mouse stays at the same relative position when the turn length or speed
+ * changes.
  */
 void MainWindow::rePaint() {
     constrainParams();
-    profile().simulate(turnSetup(), ui->turnSpeedSpinBox->value(), params().values, track);
+    TurnSetup setup = turnSetup();
+    profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, track);
+    if (slipEnabled()) {
+        setup.slip = SlipParams();
+        profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, idealTrack);
+    } else {
+        idealTrack = track;
+    }
     showTurnSummary();
     ui->progressSlider->blockSignals(true);  // showProgress() runs below
     ui->progressSlider->setRange(0, track.finish_index());
@@ -132,14 +165,17 @@ void MainWindow::showProgress() {
     int progress = ui->progressSlider->value();
     Pose pose = track.get_pose_at(progress);
     theMouse->setPose(pose);
-    theMouse->setVelocity(track.get_speed_at(progress));
+    // arrow along the velocity: slip turns it anticlockwise from the heading
+    theMouse->setVelocity(track.get_speed_at(progress), -track.get_slip_at(progress));
+    // position, distance, heading, omega, slip; units identify all but slip.
+    // Slip is always shown so the label width, and with it the layout, does not change
     ui->lblPathView->setText(
-            QString::number(track.record_count(), 'f', 0).rightJustified(4, ' ') + "  " +
-            QString::number(track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + "mm " +
             "(" + QString::number(pose.x(), 'f', 0).rightJustified(3, ' ') +
-            "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') +
-            ") ang:" + QString::number(pose.theta(), 'f', 0).rightJustified(3, ' ') + "deg, " +
-            "omega: " + QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s");
+            "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') + ")  " +
+            QString::number(track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + " mm  " +
+            QString::number(pose.theta(), 'f', 0).rightJustified(3, ' ') + " deg  " +
+            QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s  " +
+            "slip: " + QString::number(track.get_slip_at(progress), 'f', 1).rightJustified(4, ' ') + " deg");
 }
 
 namespace {
@@ -162,6 +198,8 @@ double niceCeil(double value) {
 /**
  * @brief Plot omega, speed and wheel speeds against time for the current track.
  *
+ * The slip angle is plotted above, on the same time scale (fixed 0-30 deg);
+ * zero when slip is off.
  * Axes are fixed (0-0.5 s, 0-1600 deg/s, 0-3200 mm/s) so changes of speed
  * show against a constant scale; an axis is extended only if the data would
  * be clipped, e.g. for slow turns. With Auto Scale checked, the axes are
@@ -176,6 +214,7 @@ void MainWindow::drawProfileGraph() const {
     QVector<qreal> yaxis_speed;
     QVector<qreal> yaxis_left_wheel;
     QVector<qreal> yaxis_right_wheel;
+    QVector<qreal> yaxis_slip;
     double maxOmega = 0;
     double maxSpeed = 0;
     for (int i = 1; i < track.record_count(); i++) {
@@ -186,6 +225,7 @@ void MainWindow::drawProfileGraph() const {
         yaxis_speed.push_back(speed);
         yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
         yaxis_right_wheel.push_back(speed - theMouse->m_radius * radians(omega));
+        yaxis_slip.push_back(track.get_slip_at(i));
         maxOmega = std::max(maxOmega, double(omega));
         maxSpeed = std::max({maxSpeed, double(speed), yaxis_left_wheel.back(), yaxis_right_wheel.back()});
     }
@@ -210,6 +250,11 @@ void MainWindow::drawProfileGraph() const {
     speedPen.setStyle(Qt::DotLine);
     speedPen.setWidthF(2);
     ui->customPlot->graph(1)->setPen(speedPen);
+
+    double maxSlip = track.get_max_slip();
+    ui->customPlot->addGraph(slipTime, slipAxis);
+    ui->customPlot->graph(4)->setData(xaxis, yaxis_slip);
+    ui->customPlot->graph(4)->setPen(QPen(Qt::red));
     // give the axes some labels:
     ui->customPlot->xAxis->setLabel("Time (s)");
     ui->customPlot->yAxis->setLabel("Angular Velocity (deg/s)");
@@ -220,11 +265,14 @@ void MainWindow::drawProfileGraph() const {
         ui->customPlot->xAxis->setRange(0, maxTime > 0 ? maxTime * headroom : 0.5);
         ui->customPlot->yAxis->setRange(0, maxOmega > 0 ? maxOmega * headroom : 1600);
         ui->customPlot->yAxis2->setRange(0, maxSpeed > 0 ? maxSpeed * headroom : 3200);
+        slipAxis->setRange(0, maxSlip > 0 ? maxSlip * headroom : 30);
     } else {
         ui->customPlot->xAxis->setRange(0, maxTime > 0.5 ? niceCeil(maxTime) : 0.5);
         ui->customPlot->yAxis->setRange(0, maxOmega > 1600 ? niceCeil(maxOmega) : 1600);
         ui->customPlot->yAxis2->setRange(0, maxSpeed > 3200 ? niceCeil(maxSpeed) : 3200);
+        slipAxis->setRange(0, maxSlip > 30 ? niceCeil(maxSlip) : 30);
     }
+    slipTime->setRange(ui->customPlot->xAxis->range());
     ui->customPlot->yAxis->setVisible(true);
     ui->customPlot->yAxis2->setVisible(true);
 
@@ -237,13 +285,23 @@ void MainWindow::drawProfileGraph() const {
  * @brief Replace the breadcrumb markers with ones for the current track.
  *
  * Markers (every 5th record, coloured by phase) belong to one group so they
- * can be removed together. The group is above the mouse, as before.
+ * can be removed together. The group is above the mouse, as before. With
+ * slip on, the path without slip is drawn as a faint line in the same group.
  */
 void MainWindow::drawBreadcrumbs() {
     delete breadcrumbs;  // also deletes the markers
     breadcrumbs = new QGraphicsItemGroup;
     breadcrumbs->setZValue(1);
     mouseScene->addItem(breadcrumbs);
+    if (slipEnabled() && !idealTrack.empty()) {
+        QPainterPath idealPath(QPointF(idealTrack.get_pose_at(0).x(), idealTrack.get_pose_at(0).y()));
+        for (int i = 1; i < idealTrack.record_count(); i++) {
+            idealPath.lineTo(idealTrack.get_pose_at(i).x(), idealTrack.get_pose_at(i).y());
+        }
+        QPen idealPen(QColor(255, 255, 255, 110));
+        idealPen.setWidthF(1.0);
+        mouseScene->addPath(idealPath, idealPen)->setParentItem(breadcrumbs);
+    }
     QPen markerPen;
     markerPen.setWidthF(2.0);
     markerPen.setStyle(Qt::DotLine);
@@ -481,7 +539,13 @@ TurnSetup MainWindow::turnSetup() const {
     setup.start_angle = -turnGeometry[turn].start_angle;
     setup.turn_angle = turnGeometry[turn].angle;
     setup.interval = loopInterval;
+    setup.slip.gradient = float(ui->slipGradientSpinBox->value());
+    setup.slip.load_factor = float(ui->loadFactorSpinBox->value());
     return setup;
+}
+
+bool MainWindow::slipEnabled() const {
+    return ui->slipGradientSpinBox->value() > 0;
 }
 
 /**

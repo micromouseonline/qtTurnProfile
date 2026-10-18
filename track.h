@@ -48,6 +48,9 @@ public:
 
     float get_max_acceleration() const;
 
+    /// Largest slip angle magnitude, degrees; 0 if the track is empty.
+    float get_max_slip() const;
+
     float get_distance_at(int index) const { return m_distance[index]; }
 
     float get_omega_at(int index) const { return m_omega[index]; }
@@ -55,6 +58,8 @@ public:
     float get_time_at(int index) const { return m_time[index]; }
 
     float get_speed_at(int index) const { return m_speed[index]; }
+
+    float get_slip_at(int index) const { return m_slip[index]; }
 
     int get_phase_at(int index) const { return m_phase[index]; }
 
@@ -71,6 +76,7 @@ private:
     std::vector<float> m_omega;
     std::vector<float> m_speed;
     std::vector<float> m_acceleration;
+    std::vector<float> m_slip;
     std::vector<int> m_phase;
 };
 

@@ -85,6 +85,7 @@ public:
 
         track.clear();
         RobotState robot_state(setup.start_x, setup.start_y, startAngle, turnSpeed, setup.interval);
+        robot_state.set_slip(setup.slip);
         track.add_record(robot_state);
         // perform the turn;
         // unlike the other turn types, the cubic spiral is based on distance

@@ -5,6 +5,7 @@
 
 #include "main_window_ui.h"
 #include <QCoreApplication>
+#include <QDoubleSpinBox>
 #include <QFontDatabase>
 #include <QFormLayout>
 #include <QGraphicsView>
@@ -70,6 +71,24 @@ QSpinBox *makeSpinBox(const char *name, int min, int max, int step, int value) {
     return box;
 }
 
+/**
+ * @brief Make a right aligned spinbox with one decimal.
+ * @param name object name
+ * @param min minimum value
+ * @param max maximum value
+ * @param value initial value
+ */
+QDoubleSpinBox *makeDoubleSpinBox(const char *name, double min, double max, double value) {
+    auto *box = new QDoubleSpinBox;
+    box->setObjectName(name);
+    box->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    box->setDecimals(1);
+    box->setRange(min, max);
+    box->setSingleStep(0.1);
+    box->setValue(value);
+    return box;
+}
+
 /// Form layout with right aligned labels and fields at their natural width
 QFormLayout *makeForm(QWidget *parent) {
     auto *form = new QFormLayout(parent);
@@ -130,6 +149,7 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     gbSpinners = new QGroupBox(tr("Parameters"));
     gbSpinners->setObjectName("gbSpinners");
     paramLayout = makeForm(gbSpinners);
+    paramLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);  // all fields as wide as the widest
     turnSpeedSpinBox = makeSpinBox("turnSpeedSpinBox", 100, 3000, 10, 1000);
     // covers every reachable peak: speed 3000 with cubic length 50 on SS180 is about 848000
     accelerationSpinBox = makeSpinBox("accelerationSpinBox", 0, 1000000, 100, 9800);
@@ -139,6 +159,14 @@ void MainWindowUi::setupUi(QMainWindow *window) {
     paramLayout->addRow(tr("Acc:"), accelerationSpinBox);
     paramLayout->addRow(tr("Offset:"), offsetSpinBox);
     paramLayout->addRow(tr("Sensors:"), sensorAngleSpinBox);
+    // tyre slip, shared by all profiles and turns
+    slipGradientSpinBox = makeDoubleSpinBox("slipGradientSpinBox", 0, 20, 0);
+    slipGradientSpinBox->setToolTip(tr("Slip angle per g of centripetal acceleration (deg/g), 0 = no slip.\n"
+                                       "Measure across a slope, no fan: crab angle / tan(slope angle)"));
+    loadFactorSpinBox = makeDoubleSpinBox("loadFactorSpinBox", 1, 10, 1);
+    loadFactorSpinBox->setToolTip(tr("Normal load / weight: (weight + fan downforce) / weight. 1 = no fan"));
+    paramLayout->addRow(tr("Slip:"), slipGradientSpinBox);
+    paramLayout->addRow(tr("Load:"), loadFactorSpinBox);
 
     // turn types
     gbTurnType = new QGroupBox(tr("Turn Type"));

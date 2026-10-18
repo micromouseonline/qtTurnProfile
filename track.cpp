@@ -1,6 +1,7 @@
 #include "track.h"
 #include "robotstate.h"
 #include <algorithm>
+#include <cmath>
 
 Track::Track() {
     clear();
@@ -16,6 +17,7 @@ void Track::clear() {
     m_omega.clear();
     m_speed.clear();
     m_acceleration.clear();
+    m_slip.clear();
     m_phase.clear();
 }
 
@@ -27,6 +29,7 @@ void Track::add_record(RobotState robot_state) {
     m_omega.push_back(robot_state.omega);
     m_speed.push_back(robot_state.speed);
     m_acceleration.push_back(robot_state.acceleration);
+    m_slip.push_back(robot_state.slip);
     m_phase.push_back(robot_state.phase);
     m_record_count++;
 }
@@ -52,3 +55,11 @@ float Track::get_max_acceleration() const {
     return *std::max_element(m_acceleration.begin(), m_acceleration.end());
 }
 
+
+float Track::get_max_slip() const {
+    float max = 0;
+    for (float s : m_slip) {
+        max = std::max(max, std::fabs(s));
+    }
+    return max;
+}

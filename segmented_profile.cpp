@@ -33,6 +33,7 @@ void SegmentedProfile::simulate(const TurnSetup &setup, float speed, const std::
 
     track.clear();
     RobotState robot_state(setup.start_x, setup.start_y, startAngle, turnSpeed, setup.interval);
+    robot_state.set_slip(setup.slip);
     track.add_record(robot_state);
 
     // In the robot, take care that rounding errors do not preventit from

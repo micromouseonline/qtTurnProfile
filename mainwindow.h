@@ -60,6 +60,9 @@ private:
     /// profiles are independent of each other.
     std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
     Track track;  ///< the simulated turn and leadout
+    Track idealTrack;  ///< the same turn without slip; a copy of track when slip is off
+    QCPAxis *slipAxis;   ///< slip angle axis, in the plot above the speed plot
+    QCPAxis *slipTime;   ///< time axis of the slip plot; follows the main time axis
     Turn_t turn = TURN_SS90F;
     int turnProfile = 0;  ///< index into profile_registry()
     MainWindowUi *ui;
@@ -93,6 +96,9 @@ private:
     void paramChanged(int index, double value);
 
     TurnSetup turnSetup() const;
+
+    /// True when the slip gradient is above zero
+    bool slipEnabled() const;
 
     float peakAcceleration(float speed) const;
 

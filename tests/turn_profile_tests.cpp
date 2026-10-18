@@ -16,6 +16,9 @@
  * Variants: "def" (defaults), "lam200" (lambda 200, then clamped),
  * "r15" (radius 15, lambda clamped), "L60" (cubic length 60).
  *
+ * Slip checks (not in the baseline) compare each default case with slip on
+ * against the same case without slip.
+ *
  * Exit code 0 when everything passes.
  */
 
@@ -226,6 +229,81 @@ std::string runCase(Case c) {
     return line.str();
 }
 
+/**
+ * @brief Tyre slip checks for every profile and turn at the defaults.
+ *
+ * With slip on, heading, distance and record count must equal the no slip
+ * case; only the position changes. The peak slip angle must follow
+ * gradient * (peak acceleration / g) / load factor, so it scales with
+ * speed squared and inversely with the load factor. The exit point must move
+ * to the outside of the turn, taken as the outward normal at mid turn.
+ */
+void checkSlip() {
+    const float gradient = 5;
+    for (const TurnProfile *profile : profile_registry()) {
+        for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+            Turn_t turn = Turn_t(t);
+            TurnDefaults d = profile->defaults(turn);
+            std::string w = "slip " + shortName(profile) + " " + turnNames[t];
+            TurnSetup setup = setupFor(turn, d.offset);
+            std::vector<float> values = d.values;
+            profile->constrain(setup, values);
+
+            Track ideal;
+            profile->simulate(setup, d.speed, values, ideal);
+            check(ideal.get_max_slip() == 0, w, "slip without slip model");
+
+            setup.slip.gradient = gradient;
+            Track slipped;
+            profile->simulate(setup, d.speed, values, slipped);
+            check(slipped.record_count() == ideal.record_count() && slipped.finish_index() == ideal.finish_index(),
+                  w, "record count or turn end changed by slip");
+            check(slipped.get_exit_pose().theta() == ideal.get_exit_pose().theta(), w, "exit heading changed by slip");
+            check(slipped.turn_length() == ideal.turn_length(), w, "turn length changed by slip");
+            bool finite = true;
+            for (int i = 0; i < slipped.record_count(); i++) {
+                Pose p = slipped.get_pose_at(i);
+                finite = finite && std::isfinite(p.x()) && std::isfinite(p.y()) && std::isfinite(slipped.get_slip_at(i));
+            }
+            check(finite, w, "non-finite values with slip");
+            check(slipped.get_slip_at(slipped.record_count() - 1) == 0, w, "slip in leadout");
+
+            // peak slip follows the simulated peak acceleration
+            char buf[160];
+            float expected = gradient * slipped.get_max_acceleration() / GRAVITY;
+            float rel = std::fabs(slipped.get_max_slip() - expected) / expected;
+            std::snprintf(buf, sizeof buf, "max slip %.4f vs expected %.4f", slipped.get_max_slip(), expected);
+            check(rel < 0.01f, w, buf);
+
+            // exit point displaced outward: heading h = (sin th, -cos th), turning towards (cos th, sin th)
+            float mid = radians(setup.start_angle + setup.turn_angle / 2);
+            float dx = slipped.get_exit_pose().x() - ideal.get_exit_pose().x();
+            float dy = slipped.get_exit_pose().y() - ideal.get_exit_pose().y();
+            float outward = -(dx * std::cos(mid) + dy * std::sin(mid));
+            std::snprintf(buf, sizeof buf, "exit displacement %.3f mm not outward", outward);
+            check(outward > 0, w, buf);
+
+            // doubling the load factor halves the slip
+            setup.slip.load_factor = 2;
+            Track loaded;
+            profile->simulate(setup, d.speed, values, loaded);
+            rel = std::fabs(2 * loaded.get_max_slip() - slipped.get_max_slip()) / slipped.get_max_slip();
+            std::snprintf(buf, sizeof buf, "load factor 2 slip %.4f vs %.4f / 2", loaded.get_max_slip(),
+                          slipped.get_max_slip());
+            check(rel < 1e-5f, w, buf);
+
+            // doubling the speed quadruples the slip
+            setup.slip.load_factor = 1;
+            Track fast;
+            profile->simulate(setup, 2 * d.speed, values, fast);
+            rel = std::fabs(fast.get_max_slip() - 4 * slipped.get_max_slip()) / (4 * slipped.get_max_slip());
+            std::snprintf(buf, sizeof buf, "double speed slip %.4f vs 4 * %.4f", fast.get_max_slip(),
+                          slipped.get_max_slip());
+            check(rel < 0.01f, w, buf);
+        }
+    }
+}
+
 /// Split a baseline line into its case name and the value fields keyed by label
 std::pair<std::string, std::map<std::string, double>> parseLine(const std::string &line) {
     std::istringstream in(line);
@@ -304,6 +382,7 @@ int main(int argc, char *argv[]) {
     for (const Case &c : cases) {
         lines.push_back(runCase(c));
     }
+    checkSlip();
 
     if (update) {
         std::ofstream file(path);
