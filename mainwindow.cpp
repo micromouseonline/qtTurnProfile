@@ -166,6 +166,7 @@ void MainWindow::rePaint() {
     int progress = ui->progressSlider->value();
     Pose pose = g_track.get_pose_at(progress);
     theMouse->setPose(pose);
+    theMouse->setVelocity(g_track.get_speed_at(progress));
     ui->lblPathView->setText(
             QString::number(g_track.record_count(), 'f', 0).rightJustified(4, ' ') + "  " +
             QString::number(g_track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + "mm " +

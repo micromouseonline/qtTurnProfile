@@ -39,7 +39,7 @@ Commit after each verified step.
   - Tested: all 3 profiles x 8 turns at defaults, lambda 200, radius 15; defaults and
     lambda 200 results unchanged by the distance limit.
 
-- [ ] 1.6 `MouseItem::paint` changes item geometry
+- [x] 1.6 `MouseItem::paint` changes item geometry
   - Move `setPos`/`setRotation` from `paint()` into `setPose()`.
   - Test: slider moves mouse correctly, no visual lag or repaint storm.
 

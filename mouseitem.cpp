@@ -10,14 +10,14 @@ MouseItem::MouseItem() {
 }
 
 QRectF MouseItem::boundingRect() const {
-    return {-160, -150, 320, 300};
+    // body and sensors, extended to cover the velocity arrow in any direction
+    qreal arrow = m_speed * velocityScale + 10;
+    return QRectF(-160, -150, 320, 300).united(QRectF(-arrow, -arrow, 2 * arrow, 2 * arrow));
 }
 
 void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
     (void) widget;
     (void) option;
-    setPos(m_pose.x(), m_pose.y());
-    setRotation(m_pose.theta());
     QPen pen;
     pen.setWidth(2);
     pen.setColor(Qt::cyan);
@@ -66,6 +66,34 @@ void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     painter->drawLine(-m_radius, 4, -m_radius, 22);
     painter->drawLine(m_radius, -24, m_radius, -6);
     painter->drawLine(m_radius, 4, m_radius, 22);
+
+    drawVelocity(painter);
+}
+
+/**
+ * @brief Draw the velocity vector as an arrow from the mouse centre.
+ *
+ * Length is m_speed * velocityScale. In item coordinates the heading is -y;
+ * the arrow is rotated from there by m_direction.
+ *
+ * @param painter painter in item coordinates
+ */
+void MouseItem::drawVelocity(QPainter *painter) const {
+    qreal length = m_speed * velocityScale;
+    if (length < 1) {
+        return;
+    }
+    QPen pen(QColor(255, 140, 0));
+    pen.setWidthF(2);
+    pen.setCapStyle(Qt::RoundCap);
+    painter->save();
+    painter->setPen(pen);
+    painter->rotate(m_direction);
+    QPointF tip(0, -length);
+    painter->drawLine(QPointF(0, 0), tip);
+    painter->drawLine(tip, tip + QPointF(-5, 10));
+    painter->drawLine(tip, tip + QPointF(5, 10));
+    painter->restore();
 }
 
 void MouseItem::drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensorAngle) const {
@@ -90,9 +118,31 @@ void MouseItem::drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensor
     painter->drawLine(sensorOrigin, lineEnd);
 }
 
+/**
+ * @brief Move the mouse to a new pose in the scene.
+ *
+ * Position and rotation are applied here, not in paint(), so the item
+ * geometry is correct before the scene repaints.
+ *
+ * @param pose position in mm and heading in degrees
+ */
 void MouseItem::setPose(Pose pose) {
     m_pose = pose;
+    setPos(m_pose.x(), m_pose.y());
+    setRotation(m_pose.theta());
+}
 
+/**
+ * @brief Set the velocity shown by the arrow.
+ *
+ * @param speed speed in mm/s; arrow length is speed * velocityScale
+ * @param direction velocity direction relative to the heading in degrees,
+ *        positive clockwise on screen; 0 when there is no slip
+ */
+void MouseItem::setVelocity(qreal speed, qreal direction) {
+    prepareGeometryChange();  // bounding rect depends on speed
+    m_speed = speed;
+    m_direction = direction;
 }
 
 void MouseItem::setSensorAngle(qreal angle) {
