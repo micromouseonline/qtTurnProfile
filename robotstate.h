@@ -6,11 +6,8 @@
 #define QTTURNPROFILE_ROBOTSTATE_H
 
 #include <cmath>
+#include "angles.h"
 #include "pose.h"
-
-#define PI 3.14159265359
-#define RADIANS(x) ((x)*PI / 180.0)
-#define DEGREES(x) ((x)*180.0 / PI)
 
 class RobotState {
 public:
@@ -51,11 +48,11 @@ public:
         float delta = speed * m_interval;
         time += m_interval;
         distance += delta;
-        x += -delta * cos(PI / 2 + RADIANS(theta));
-        y += -delta * sin(PI / 2 + RADIANS(theta));
+        x += -delta * cos(PI / 2 + radians(theta));
+        y += -delta * sin(PI / 2 + radians(theta));
         theta += omega * m_interval;
         pose.set_pose(x, y, theta);
-        acceleration = speed * RADIANS(omega);
+        acceleration = speed * radians(omega);
         alpha = omega - m_oldOmega;
         m_oldOmega = omega;
     }

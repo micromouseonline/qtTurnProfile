@@ -5,13 +5,11 @@
 #include <cmath>
 #include "algorithm"
 #include "ui_mainwindow.h"
+#include "angles.h"
 #include "track.h"
 #include "pathitem.h"
 #include "robotstate.h"
 
-#define PI 3.14159265359
-#define RADIANS(x) ((x)*PI / 180.0)
-#define DEGREES(x) ((x)*180.0 / PI)
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
@@ -69,7 +67,7 @@ void MainWindow::on_btnRefresh_clicked() {
 
 void MainWindow::showTurnSummary() const {
     float max_alpha = g_track.get_max_alpha() / loopInterval;
-    qreal wheelAcceleration = theMouse->m_radius * RADIANS(max_alpha);
+    qreal wheelAcceleration = theMouse->m_radius * radians(max_alpha);
     Pose exit_pose = g_track.get_exit_pose();
 
     ui->textEdit->clear();
@@ -142,8 +140,8 @@ void MainWindow::drawProfileGraph() const {
         float speed = g_track.get_speed_at(i);
         yaxis_omega.push_back(omega);
         yaxis_speed.push_back(speed);
-        yaxis_left_wheel.push_back(speed + theMouse->m_radius * RADIANS(omega));
-        yaxis_right_wheel.push_back(speed - theMouse->m_radius * RADIANS(omega));
+        yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
+        yaxis_right_wheel.push_back(speed - theMouse->m_radius * radians(omega));
     }
 
     ui->customPlot->graph(0)->setData(xaxis, yaxis_omega);
@@ -345,8 +343,8 @@ void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
 void MainWindow::updateStartPosition() {
     const TurnGeometry &g = turnGeometry[turn];
     float offset = ui->offsetSpinBox->value();
-    float start_x = g.base_x - offset * cos(PI / 2 + RADIANS(g.start_angle));
-    float start_y = g.base_y - offset * sin(PI / 2 + RADIANS(g.start_angle));
+    float start_x = g.base_x - offset * cos(PI / 2 + radians(g.start_angle));
+    float start_y = g.base_y - offset * sin(PI / 2 + radians(g.start_angle));
     ui->startXSpinBox->blockSignals(true);
     ui->startXSpinBox->setValue(int(start_x));
     ui->startXSpinBox->blockSignals(false);

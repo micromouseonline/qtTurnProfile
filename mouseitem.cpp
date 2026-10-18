@@ -1,10 +1,7 @@
 #include "mouseitem.h"
 #include <algorithm>
 #include <cmath>
-
-#define PI 3.14159265359
-#define RADIANS(x) ((x)*PI / 180.0)
-#define DEGREES(x) ((x)*180.0 / PI)
+#include "angles.h"
 
 MouseItem::MouseItem() {
     setSensorAngle(35);
@@ -103,18 +100,18 @@ void MouseItem::drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensor
     qreal rayCos;
     qreal raySin;
     QPointF lineEnd;
-    rayCos = sensorLength * cos(RADIANS(sensorAngle - halfAngle));
-    raySin = sensorLength * sin(RADIANS(sensorAngle - halfAngle));
+    rayCos = sensorLength * cos(radians(sensorAngle - halfAngle));
+    raySin = sensorLength * sin(radians(sensorAngle - halfAngle));
     lineEnd = sensorOrigin + QPointF(rayCos, -raySin);
     painter->drawLine(sensorOrigin, lineEnd);
 
-    rayCos = sensorLength * cos(RADIANS(sensorAngle));
-    raySin = sensorLength * sin(RADIANS(sensorAngle));
+    rayCos = sensorLength * cos(radians(sensorAngle));
+    raySin = sensorLength * sin(radians(sensorAngle));
     lineEnd = sensorOrigin + QPointF(rayCos, -raySin);
     painter->drawLine(sensorOrigin, lineEnd);
 
-    rayCos = sensorLength * cos(RADIANS(sensorAngle + halfAngle));
-    raySin = sensorLength * sin(RADIANS(sensorAngle + halfAngle));
+    rayCos = sensorLength * cos(radians(sensorAngle + halfAngle));
+    raySin = sensorLength * sin(radians(sensorAngle + halfAngle));
     lineEnd = sensorOrigin + QPointF(rayCos, -raySin);
     painter->drawLine(sensorOrigin, lineEnd);
 }

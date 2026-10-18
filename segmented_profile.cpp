@@ -23,7 +23,7 @@ void SegmentedProfile::simulate(const TurnSetup &setup, float speed, const std::
 
     // these are derived values needed to execute the turn
     float endAngle = startAngle + turnAngle;
-    float turnOmega = DEGREES(turnSpeed / turnRadius);
+    float turnOmega = degrees(turnSpeed / turnRadius);
 
     float transitionAngle = transition_angle(lambda, turnOmega, turnSpeed);
     // angle turned during the constant omega phase
@@ -74,7 +74,7 @@ float SegmentedProfile::speed_for_acceleration(const TurnSetup &setup, float acc
 }
 
 float SegmentedProfile::max_lambda(float radius, float turn_angle) const {
-    float angle = RADIANS(turn_angle);
+    float angle = radians(turn_angle);
     return lambda_limit() * angle * radius;
 }
 

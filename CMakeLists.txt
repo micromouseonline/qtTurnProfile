@@ -40,6 +40,7 @@ set(SOURCE_FILES
         pathitem.cpp
         pathitem.h
         robotstate.h
+        angles.h
         )
 
 add_executable(qtTurnProfile ${SOURCE_FILES})

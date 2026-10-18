@@ -122,8 +122,10 @@ Commit after each verified step.
 
 - [x] 3.5 Store gamma per turn like other parameters (obsolete: gamma removed in 3.4)
 
-- [ ] 3.6 Single definition of PI / RADIANS / DEGREES
+- [x] 3.6 Single definition of PI / RADIANS / DEGREES
   - Replace 3 duplicate macros with one header of constexpr functions; consistent float/double use.
+  - Done: `angles.h` with constexpr PI, radians(), degrees() (double, same arithmetic
+    as the macros). PI kept at 3.14159265359. 370 reference lines identical.
 
 - [ ] 3.7 Remove dead code and leaks
   - Unused `PathItem` / `thePath`; `mouseScene` and `thePath` never deleted (give parents).

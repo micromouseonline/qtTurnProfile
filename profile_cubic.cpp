@@ -34,8 +34,8 @@ namespace {
  * the performance metrics can be calculated from the curvature equations
  *    turnDistance = length;
  *    turnOmega = (turnSpeed * k * length * length / 4);
- *    turnRadius = 4 * length / 6 / RADIANS(turnAngle);
- *    turnAcceleration = turnSpeed * turnSpeed * 6 * RADIANS(turnAngle) / 4 / length;
+ *    turnRadius = 4 * length / 6 / radians(turnAngle);
+ *    turnAcceleration = turnSpeed * turnSpeed * 6 * radians(turnAngle) / 4 / length;
  *    turnAlpha = turnSpeed * k * length;
  *
  * Speed is constant throughout the turn.
@@ -108,13 +108,13 @@ public:
 
     /// Curvature is (6 * angle / L) * f(1 - f), f = s / L, largest at mid turn: a = v^2 * 1.5 * angle / L
     float peak_acceleration(const TurnSetup &setup, float speed, const std::vector<float> &values) const override {
-        float angle = RADIANS(setup.turn_angle);
+        float angle = radians(setup.turn_angle);
         return speed * speed * 1.5f * angle / values[LENGTH];
     }
 
     float speed_for_acceleration(const TurnSetup &setup, float acceleration,
                                  const std::vector<float> &values) const override {
-        float angle = RADIANS(setup.turn_angle);
+        float angle = radians(setup.turn_angle);
         return std::sqrt(acceleration * values[LENGTH] / (1.5f * angle));
     }
 };
