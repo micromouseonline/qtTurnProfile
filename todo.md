@@ -138,8 +138,13 @@ Commit after each verified step.
   - Result: 370 reference lines and 6 scene renders identical; no -Wall -Wextra
     warnings in project code.
 
-- [ ] 3.8 Add tests for the physics module (after 3.3)
+- [x] 3.8 Add tests for the physics module (after 3.3)
   - e.g. exit angle within tolerance, turn distance matches formula, no NaN.
+  - Done: `turn_profile_tests` target (no Qt, CTest), tests/turn_profile_tests.cpp.
+    Baseline tests/baseline.txt: 88 cases (all profiles x turns, defaults + extremes);
+    `--update` regenerates. Property checks: registry, finite values, turn end marker,
+    exit angle, peak acceleration vs formula (1%), speed/accel round trip, constrain.
+  - Verified: matches app results for all 88 cases; trapezoid tolerance change -> 133 failures.
 
 ## 4. Build and portability
 

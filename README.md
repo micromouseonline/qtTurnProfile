@@ -32,6 +32,22 @@ cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.y/gcc_64
 On Windows the Release build copies Qt DLLs from `${CMAKE_PREFIX_PATH}/bin`, so
 `CMAKE_PREFIX_PATH` must be set there.
 
+## Tests
+
+The turn physics has a separate test target (no Qt) that runs property checks
+and compares results against a stored baseline:
+
+```bash
+cmake --build build --target turn_profile_tests
+cd build && ctest
+```
+
+After an intended physics change, regenerate the baseline and review the diff:
+
+```bash
+./build/turn_profile_tests tests/baseline.txt --update
+```
+
 ## Deployment
 
 ### Linux

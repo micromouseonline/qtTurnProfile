@@ -15,18 +15,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SOURCE_FILES
-        ui_mainwindow.h
-        mouseitem.cpp
-        mouseitem.h
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        qcustomplot.cpp
-        qcustomplot.h
+# turn physics, no Qt: shared by the app and the unit tests
+set(PHYSICS_SOURCES
         pose.h
         track.h
         track.cpp
+        robotstate.h
+        angles.h
         turn_profile.h
         turn_profile.cpp
         segmented_profile.h
@@ -36,12 +31,30 @@ set(SOURCE_FILES
         profile_trapezoid.cpp
         profile_cubic.cpp
         profile_quadratic.cpp
+        )
+
+set(SOURCE_FILES
+        ${PHYSICS_SOURCES}
+        ui_mainwindow.h
+        mouseitem.cpp
+        mouseitem.h
+        main.cpp
+        mainwindow.cpp
+        mainwindow.h
+        qcustomplot.cpp
+        qcustomplot.h
         resources.qrc
-        robotstate.h
-        angles.h
         )
 
 add_executable(qtTurnProfile ${SOURCE_FILES})
+
+# unit tests and baseline regression for the physics: ctest, or
+#   turn_profile_tests tests/baseline.txt [--update]
+enable_testing()
+add_executable(turn_profile_tests tests/turn_profile_tests.cpp ${PHYSICS_SOURCES})
+set_target_properties(turn_profile_tests PROPERTIES AUTOMOC OFF AUTORCC OFF)
+add_test(NAME turn_profile_tests
+        COMMAND turn_profile_tests ${CMAKE_SOURCE_DIR}/tests/baseline.txt)
 
 
 target_link_libraries(qtTurnProfile PRIVATE
