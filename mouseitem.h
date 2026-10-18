@@ -24,6 +24,9 @@ public:
     qreal m_side_sensor_angle = 35;
     qreal m_front_sensor_angle = 80;
 
+    /// length of the sensor rays in mm
+    static constexpr qreal sensorLength = 160;
+
     /// velocity arrow length per unit speed: 1000 mm/s is drawn as 100 mm
     static constexpr qreal velocityScale = 0.1;
 

@@ -151,6 +151,8 @@ private:
 
     void clampLambda();
 
+    void showProgress();
+
     void showTurnSummary() const;
 
     void drawBreadcrumbs() const;

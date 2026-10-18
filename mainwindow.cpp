@@ -163,6 +163,16 @@ void MainWindow::rePaint() {
     ui->progressSlider->setMaximum(g_track.finish_index());
     drawBreadcrumbs();
     drawProfileGraph();
+    showProgress();
+}
+
+/**
+ * @brief Show the mouse and its state at the progress slider position.
+ *
+ * Uses the already calculated track, so it is cheap enough to run on every
+ * slider movement. rePaint() calls it after recalculating.
+ */
+void MainWindow::showProgress() {
     int progress = ui->progressSlider->value();
     Pose pose = g_track.get_pose_at(progress);
     theMouse->setPose(pose);
@@ -338,7 +348,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
 void MainWindow::on_progressSlider_valueChanged(int value) {
     (void) value;
-    rePaint();
+    showProgress();
 }
 
 void MainWindow::on_radiusSpinBox_valueChanged(int arg1) {

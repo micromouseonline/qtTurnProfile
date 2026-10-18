@@ -55,7 +55,7 @@ Commit after each verified step.
 
 ## 2. Performance
 
-- [ ] 2.1 Progress slider only moves the mouse
+- [x] 2.1 Progress slider only moves the mouse
   - Currently slider tick re-simulates turn, rebuilds scene and graph.
   - Split `rePaint()` into recalculate and update-mouse-position.
   - Test: drag slider smoothly; label and mouse position still correct.

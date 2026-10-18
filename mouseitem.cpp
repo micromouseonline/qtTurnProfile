@@ -1,4 +1,5 @@
 #include "mouseitem.h"
+#include <algorithm>
 #include <cmath>
 
 #define PI 3.14159265359
@@ -10,9 +11,13 @@ MouseItem::MouseItem() {
 }
 
 QRectF MouseItem::boundingRect() const {
-    // body and sensors, extended to cover the velocity arrow in any direction
+    // Sensor rays start at most hypot(12, 55) from the centre (side sensors) and
+    // can point in any direction as the sensor angle changes, so cover a square
+    // of that reach, plus pen width. The velocity arrow can be longer.
+    qreal sensors = std::hypot(12.0, 55.0) + sensorLength + 2;
     qreal arrow = m_speed * velocityScale + 10;
-    return QRectF(-160, -150, 320, 300).united(QRectF(-arrow, -arrow, 2 * arrow, 2 * arrow));
+    qreal r = std::max(sensors, arrow);
+    return {-r, -r, 2 * r, 2 * r};
 }
 
 void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
@@ -42,9 +47,6 @@ void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
     painter->setPen(pen);
     painter->setPen(QColor(0, 255, 0, 192));
     // diagonals
-    qreal halfAngle = 3;
-    qreal sensorLength = 160;
-
     QPoint sensorOrigin;
     // side _sensors
     sensorOrigin = QPoint(12, -55);
@@ -97,7 +99,6 @@ void MouseItem::drawVelocity(QPainter *painter) const {
 }
 
 void MouseItem::drawSensor(QPainter *painter, QPoint &sensorOrigin, qreal sensorAngle) const {
-    float sensorLength = 160;
     float halfAngle = 3;
     qreal rayCos;
     qreal raySin;
