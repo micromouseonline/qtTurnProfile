@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include <QButtonGroup>
+#include <QDoubleSpinBox>
+#include <QLabel>
 #include <cmath>
 #include "algorithm"
 #include "ui_mainwindow.h"
@@ -11,80 +13,16 @@
 #define RADIANS(x) ((x)*PI / 180.0)
 #define DEGREES(x) ((x)*180.0 / PI)
 
-// Default speeds in all tables give a peak centripetal acceleration of 9800 mm/s/s:
-// speed = sqrt(9800 * min radius), rounded to the nearest mm/s.
-TurnParams defaultParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1048, .length = 248},    // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 913, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1038, .length = 134},     // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 902, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1084, .length = 144},   // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 885, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 852, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 741, .length = 124},       // SS90E
-};
-
-// as defaultParams, but SD45 lambda reduced: 65 exceeds the quadratic limit (64) at radius 110
-TurnParams quadraticParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1048, .length = 248},    // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 913, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 60, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1038, .length = 134},     // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 902, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1084, .length = 144},   // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 885, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 852, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 741, .length = 124},       // SS90E
-};
-
-TurnParams trapezoidParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 96, .startAngle = 0, .angle = 90, .speed = 970, .length = 248},     // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 82, .startAngle = 0, .angle = 180, .speed = 896, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 89, .startAngle = 0, .angle = 45, .speed = 934, .length = 134},      // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 77, .startAngle = 0, .angle = 135, .speed = 869, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 95, .startAngle = -45, .angle = 45, .speed = 965, .length = 144},    // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 73, .startAngle = -45, .angle = 135, .speed = 846, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 61, .startAngle = -45, .angle = 90, .speed = 773, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 48, .startAngle = 0, .angle = 90, .speed = 686, .length = 124},       // SS90E
-};
-
-// cubic profile: as defaultParams, speeds set from the cubic peak curvature
-// (min radius = length / (1.5 * angle in radians))
-TurnParams cubicParams[TURN_TYPE_COUNT] = {
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 100, .radius = 112, .startAngle = 0, .angle = 90, .speed = 1016, .length = 248},    // SS90F
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 127, .radius = 85, .startAngle = 0, .angle = 180, .speed = 877, .length = 370},    // SS180
-        {.baseX = 0, .baseY = 0, .offs = 160, .lambda = 65, .radius = 110, .startAngle = 0, .angle = 45, .speed = 1056, .length = 134},     // SD45
-        {.baseX = 0, .baseY = 0, .offs = 150, .lambda = 90, .radius = 83, .startAngle = 0, .angle = 135, .speed = 859, .length = 266},     // SD135
-        {.baseX = 90, .baseY = 0, .offs = 75, .lambda = 70, .radius = 120, .startAngle = -45, .angle = 45, .speed = 1094, .length = 144},   // DS45
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 90, .radius = 80, .startAngle = -45, .angle = 135, .speed = 844, .length = 257},  // DS135
-        {.baseX = 90, .baseY = 0, .offs = 105, .lambda = 80, .radius = 74, .startAngle = -45, .angle = 90, .speed = 848, .length = 173},   // DD90
-        {.baseX = 0, .baseY = 0, .offs = 75, .lambda = 50, .radius = 56, .startAngle = 0, .angle = 90, .speed = 718, .length = 124},       // SS90E
-};
-
-/**
- * @brief Default parameter table for a profile.
- * @param profile profile index (Profile_t)
- * @return table of TURN_TYPE_COUNT entries the profile starts from and resets to
- */
-static const TurnParams *profileDefaults(int profile) {
-    switch (profile) {
-        case PR_TRAPEZOID:
-            return trapezoidParams;
-        case PR_QUADRATIC:
-            return quadraticParams;
-        case PR_CUBIC:
-            return cubicParams;
-        default:
-            return defaultParams;
-    }
-}
-
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
     // on_<widget>_<signal> slots are auto-connected by setupUi (connectSlotsByName)
 
-    for (int p = 0; p < PR_COUNT; p++) {
-        for (int i = 0; i < TURN_TYPE_COUNT; i++) {
-            profileParams[p][i] = profileDefaults(p)[i];
+    // every profile starts from its own defaults
+    stored.resize(profile_registry().size());
+    for (size_t p = 0; p < stored.size(); p++) {
+        for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+            TurnDefaults d = profile_registry()[p]->defaults(Turn_t(t));
+            stored[p][t] = {d.offset, d.speed, d.values};
         }
     }
 
@@ -99,13 +37,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 //    mouseScene->addItem(thePath);
     ui->pathView->setScene(mouseScene);
     ui->pathView->setRenderHint(QPainter::Antialiasing);
-    // button ids are the Turn_t / Profile_t values
-    profileGroup = new QButtonGroup(this);
-    profileGroup->addButton(ui->rbTrapezoid, PR_TRAPEZOID);
-    profileGroup->addButton(ui->rbQuadratic, PR_QUADRATIC);
-    profileGroup->addButton(ui->rbSinusoid, PR_SINUSOID);
-    profileGroup->addButton(ui->rbCubic, PR_CUBIC);
-    connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
+    buildProfileButtons();
+
+    // button ids are the Turn_t values
 
     turnGroup = new QButtonGroup(this);
     turnGroup->addButton(ui->rbSS90F, TURN_SS90F);
@@ -118,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     turnGroup->addButton(ui->rbSS90E, TURN_SS90E);
     connect(turnGroup, &QButtonGroup::idClicked, this, &MainWindow::selectTurn);
 
-    ui->rbSinusoid->click();
+    profileGroup->button(0)->click();
     ui->rbSS90F->click();
     setWindowTitle(tr("Turn Render"));
     // now we have everything set up, top the window from resizing
@@ -140,7 +74,10 @@ void MainWindow::showTurnSummary() const {
 
     ui->textEdit->clear();
     ui->textEdit->append("Turn Parameters");
-    ui->textEdit->append("   Min Radius: " + QString::number(ui->radiusSpinBox->value(), 'f', 0).rightJustified(6, ' ') + " mm");
+    // equals the arc radius for segmented profiles; the tightest point for others
+    float speed = ui->turnSpeedSpinBox->value();
+    float minRadius = speed * speed / peakAcceleration(speed);
+    ui->textEdit->append("   Min Radius: " + QString::number(minRadius, 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("   Turn Speed: " + QString::number(ui->turnSpeedSpinBox->value(), 'f', 0).rightJustified(6, ' ') + " mm/s");
     ui->textEdit->append("Cent'l Acceln: " + QString::number(g_track.get_max_acceleration(), 'f', 0).rightJustified(6, ' ') + " mm/s/s");
     ui->textEdit->append(" Wheel Acceln: " + QString::number(wheelAcceleration, 'f', 0).rightJustified(6, ' ') + " mm/s/s");
@@ -152,14 +89,16 @@ void MainWindow::showTurnSummary() const {
     ui->textEdit->append("     Distance: " + QString::number(g_track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("         Time: " + QString::number(g_track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
     ui->textEdit->append("   Exit Speed: " + QString::number(g_track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
-    if (turnProfile != PR_CUBIC) {
-        ui->textEdit->append("   Lambda Max: " + QString::number(int(maxLambda())).rightJustified(6, ' ') + " mm");
+    for (const SummaryLine &line : profile().summary(turnSetup(), params().values)) {
+        ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
+                             QString::number(line.value, 'f', line.decimals).rightJustified(6, ' ') + " " +
+                             QString::fromStdString(line.units));
     }
 }
 
 void MainWindow::rePaint() {
-    clampLambda();
-    simulate_turn(Profile_t(turnProfile), turnInput(), g_track);
+    constrainParams();
+    profile().simulate(turnSetup(), ui->turnSpeedSpinBox->value(), params().values, g_track);
     showTurnSummary();
     ui->progressSlider->setMinimum(0);
     ui->progressSlider->setMaximum(g_track.finish_index());
@@ -289,7 +228,8 @@ void MainWindow::drawBreadcrumbs() {
 }
 
 void MainWindow::on_btnReset_clicked() {
-    params() = profileDefaults(turnProfile)[turn];
+    TurnDefaults d = profile().defaults(turn);
+    params() = {d.offset, d.speed, d.values};
     setParams(turn);
     rePaint();
 }
@@ -363,13 +303,6 @@ void MainWindow::on_progressSlider_valueChanged(int value) {
     showProgress();
 }
 
-void MainWindow::on_radiusSpinBox_valueChanged(int arg1) {
-    float turnRadius = ui->radiusSpinBox->value();
-    params().radius = turnRadius;
-    updateAccelerationBox();
-    rePaint();
-}
-
 void MainWindow::on_accelerationSpinBox_valueChanged(int arg1) {
     float turnAcceleration = arg1;
     float turnSpeed = speedForAcceleration(turnAcceleration);
@@ -390,29 +323,6 @@ void MainWindow::on_startXSpinBox_valueChanged(int arg1) {
     rePaint();
 }
 
-void MainWindow::on_lambdaSpinBox_valueChanged(int arg1) {
-    params().lambda = arg1;
-    rePaint();
-}
-
-void MainWindow::on_cubicLengthSpinBox_valueChanged(int arg1) {
-    params().length = arg1;
-    updateAccelerationBox();
-    rePaint();
-}
-
-void MainWindow::on_cubicGammaSpinBox_valueChanged(int arg1) {
-    (void) arg1;
-    rePaint();
-}
-
-
-
-
-
-
-
-
 void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
     float turnSpeed = arg1;
     params().speed = turnSpeed;
@@ -421,7 +331,7 @@ void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
 }
 
 void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
-    params().offs = arg1;
+    params().offset = arg1;
     updateStartPosition();
     rePaint();
 }
@@ -433,9 +343,10 @@ void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
  * start heading. Signals are blocked; the caller repaints.
  */
 void MainWindow::updateStartPosition() {
+    const TurnGeometry &g = turnGeometry[turn];
     float offset = ui->offsetSpinBox->value();
-    float start_x = params().baseX - offset * cos(PI / 2 + RADIANS(params().startAngle));
-    float start_y = params().baseY - offset * sin(PI / 2 + RADIANS(params().startAngle));
+    float start_x = g.base_x - offset * cos(PI / 2 + RADIANS(g.start_angle));
+    float start_y = g.base_y - offset * sin(PI / 2 + RADIANS(g.start_angle));
     ui->startXSpinBox->blockSignals(true);
     ui->startXSpinBox->setValue(int(start_x));
     ui->startXSpinBox->blockSignals(false);
@@ -456,21 +367,22 @@ void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
  * value; their side effects (acceleration and start position) are done once
  * at the end. Does not repaint: the caller calls rePaint() once.
  *
- * @param turn_index turn type (Turn_t) in the current profile
+ * @param turn_index turn type (Turn_t) in the current profile; the parameter
+ *        spinboxes must already be built for the current profile
  */
 void MainWindow::setParams(int turn_index) {
-    const TurnParams &p = profileParams[turnProfile][turn_index];
-    QSpinBox *boxes[] = {ui->radiusSpinBox, ui->lambdaSpinBox, ui->offsetSpinBox,
-                         ui->turnSpeedSpinBox, ui->cubicLengthSpinBox};
-    for (QSpinBox *box : boxes) {
+    const TurnValues &v = stored[turnProfile][turn_index];
+    std::vector<QAbstractSpinBox *> boxes = {ui->offsetSpinBox, ui->turnSpeedSpinBox};
+    boxes.insert(boxes.end(), paramBoxes.begin(), paramBoxes.end());
+    for (QAbstractSpinBox *box : boxes) {
         box->blockSignals(true);
     }
-    ui->radiusSpinBox->setValue(int(p.radius));
-    ui->lambdaSpinBox->setValue(int(p.lambda));
-    ui->offsetSpinBox->setValue(int(p.offs));
-    ui->turnSpeedSpinBox->setValue(int(p.speed));
-    ui->cubicLengthSpinBox->setValue(int(p.length));
-    for (QSpinBox *box : boxes) {
+    ui->offsetSpinBox->setValue(int(v.offset));
+    ui->turnSpeedSpinBox->setValue(int(v.speed));
+    for (size_t i = 0; i < paramBoxes.size(); i++) {
+        paramBoxes[i]->setValue(v.values[i]);
+    }
+    for (QAbstractSpinBox *box : boxes) {
         box->blockSignals(false);
     }
     updateAccelerationBox();
@@ -478,23 +390,21 @@ void MainWindow::setParams(int turn_index) {
 }
 
 /**
- * @brief Peak centripetal acceleration of the current turn, see peak_acceleration().
+ * @brief Peak centripetal acceleration of the current turn, see TurnProfile::peak_acceleration().
  * @param speed turn speed in mm/s
  * @return peak centripetal acceleration in mm/s/s
  */
 float MainWindow::peakAcceleration(float speed) const {
-    return peak_acceleration(Profile_t(turnProfile), speed, ui->radiusSpinBox->value(),
-                             ui->cubicLengthSpinBox->value(), profileParams[turnProfile][turn].angle);
+    return profile().peak_acceleration(turnSetup(), speed, params().values);
 }
 
 /**
- * @brief Turn speed for a peak centripetal acceleration, see speed_for_acceleration().
+ * @brief Turn speed for a peak centripetal acceleration, see TurnProfile::speed_for_acceleration().
  * @param acceleration peak centripetal acceleration in mm/s/s
  * @return turn speed in mm/s
  */
 float MainWindow::speedForAcceleration(float acceleration) const {
-    return speed_for_acceleration(Profile_t(turnProfile), acceleration, ui->radiusSpinBox->value(),
-                                  ui->cubicLengthSpinBox->value(), profileParams[turnProfile][turn].angle);
+    return profile().speed_for_acceleration(turnSetup(), acceleration, params().values);
 }
 
 /**
@@ -509,65 +419,138 @@ void MainWindow::updateAccelerationBox() {
 }
 
 /**
- * @brief Largest valid lambda for the current turn, see max_lambda().
- * @return maximum lambda in mm
- */
-float MainWindow::maxLambda() const {
-    return max_lambda(Profile_t(turnProfile), ui->radiusSpinBox->value(), profileParams[turnProfile][turn].angle);
-}
-
-/**
- * @brief Collect the simulation inputs from the UI and the current turn parameters.
+ * @brief Collect the simulation setup from the UI and the turn geometry.
  *
  * Start Y and the start angle are negated into the simulation convention.
  *
- * @return inputs for simulate_turn()
+ * @return setup for TurnProfile::simulate()
  */
-TurnInput MainWindow::turnInput() const {
-    TurnInput in;
-    in.start_x = ui->startXSpinBox->value();
-    in.start_y = -ui->startYSpinBox->value();
-    in.start_angle = -profileParams[turnProfile][turn].startAngle;
-    in.turn_angle = profileParams[turnProfile][turn].angle;
-    in.speed = ui->turnSpeedSpinBox->value();
-    in.radius = ui->radiusSpinBox->value();
-    in.lambda = ui->lambdaSpinBox->value();
-    in.length = ui->cubicLengthSpinBox->value();
-    in.gamma = ui->cubicGammaSpinBox->value() / 100.0f;
-    in.interval = loopInterval;
-    return in;
+TurnSetup MainWindow::turnSetup() const {
+    TurnSetup setup;
+    setup.start_x = ui->startXSpinBox->value();
+    setup.start_y = -ui->startYSpinBox->value();
+    setup.start_angle = -turnGeometry[turn].start_angle;
+    setup.turn_angle = turnGeometry[turn].angle;
+    setup.interval = loopInterval;
+    return setup;
 }
 
 /**
- * @brief Reduce lambda to maxLambda() if it is too large.
+ * @brief Apply the profile's constraints (e.g. lambda limit) to the current values.
  *
- * Updates the spinbox (without signals) and the stored parameter.
+ * Changed values are stored and shown in their spinboxes without signals.
  */
-void MainWindow::clampLambda() {
-    int limit = int(maxLambda());
-    if (ui->lambdaSpinBox->value() > limit) {
-        ui->lambdaSpinBox->blockSignals(true);
-        ui->lambdaSpinBox->setValue(limit);
-        ui->lambdaSpinBox->blockSignals(false);
-        params().lambda = limit;
+void MainWindow::constrainParams() {
+    std::vector<float> values = params().values;
+    if (!profile().constrain(turnSetup(), values)) {
+        return;
     }
+    params().values = values;
+    for (size_t i = 0; i < paramBoxes.size(); i++) {
+        paramBoxes[i]->blockSignals(true);
+        paramBoxes[i]->setValue(values[i]);
+        paramBoxes[i]->blockSignals(false);
+    }
+}
+
+/**
+ * @brief Create one radio button per registered profile in the Turn Profile box.
+ *
+ * Button ids are registry indices. The box is resized to fit.
+ */
+void MainWindow::buildProfileButtons() {
+    profileGroup = new QButtonGroup(this);
+    const auto &profiles = profile_registry();
+    for (size_t i = 0; i < profiles.size(); i++) {
+        auto *button = new QRadioButton(QString::fromStdString(profiles[i]->name()), ui->gbTurnProfile);
+        button->setToolTip(QString::fromStdString(profiles[i]->description()));
+        ui->vlProfiles->addWidget(button);
+        profileGroup->addButton(button, int(i));
+    }
+    connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
+    ui->gbTurnProfile->resize(ui->gbTurnProfile->width(), ui->gbTurnProfile->sizeHint().height());
+}
+
+/**
+ * @brief Replace the parameter rows with spinboxes for the current profile's parameters.
+ *
+ * Each spinbox stores its value in params().values and repaints when changed.
+ */
+void MainWindow::buildParamRows() {
+    for (QLabel *label : paramLabels) {
+        delete label;
+    }
+    for (QDoubleSpinBox *box : paramBoxes) {
+        delete box;
+    }
+    paramLabels.clear();
+    paramBoxes.clear();
+    std::vector<ParamDef> defs = profile().params();
+    for (size_t i = 0; i < defs.size(); i++) {
+        const ParamDef &def = defs[i];
+        auto *label = new QLabel(QString::fromStdString(def.label + ":"), ui->gbSpinners);
+        label->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+        auto *box = new QDoubleSpinBox(ui->gbSpinners);
+        box->setObjectName(QString::fromStdString("param_" + def.id));
+        box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+        box->setAccelerated(true);
+        box->setDecimals(def.decimals);
+        box->setRange(def.min, def.max);
+        box->setSingleStep(def.step);
+        box->setToolTip(QString::fromStdString(def.label + " (" + def.units + ")"));
+        connect(box, &QDoubleSpinBox::valueChanged, this, [this, i](double value) { paramChanged(int(i), value); });
+        label->show();
+        box->show();
+        paramLabels.push_back(label);
+        paramBoxes.push_back(box);
+    }
+    layoutParameterBox();
+}
+
+/**
+ * @brief Position the rows of the Parameters box and fit its height.
+ *
+ * Order: speed, acceleration, the profile's parameters, offset, sensor angle.
+ */
+void MainWindow::layoutParameterBox() {
+    const int rowStep = 30;
+    int row = 2;  // speed and acceleration are fixed in rows 0 and 1
+    auto place = [&](QWidget *label, QWidget *box) {
+        int y = rowStep + row * rowStep;
+        label->setGeometry(10, y, 55, 24);
+        box->setGeometry(70, y, 70, 24);
+        row++;
+    };
+    for (size_t i = 0; i < paramBoxes.size(); i++) {
+        place(paramLabels[i], paramBoxes[i]);
+    }
+    place(ui->lblOffset, ui->offsetSpinBox);
+    place(ui->lblSensorAngle, ui->sensorAngleSpinBox);
+    ui->gbSpinners->resize(ui->gbSpinners->width(), rowStep * row + 50);
+}
+
+/**
+ * @brief A profile parameter spinbox changed: store it and repaint.
+ * @param index parameter index in TurnProfile::params()
+ * @param value new value
+ */
+void MainWindow::paramChanged(int index, double value) {
+    params().values[index] = value;
+    updateAccelerationBox();
+    rePaint();
 }
 
 /**
  * @brief Switch to a turn profile and load its stored parameters for the current turn.
  *
- * Enables the spinboxes the profile uses. The progress slider is left where it is.
+ * Builds the profile's parameter spinboxes. The progress slider is left where it is.
  *
- * @param profile profile index (Profile_t), the profileGroup button id
+ * @param profile_index index in profile_registry(), the profileGroup button id
  */
-void MainWindow::selectProfile(int profile) {
-    turnProfile = profile;
+void MainWindow::selectProfile(int profile_index) {
+    turnProfile = profile_index;
+    buildParamRows();
     setParams(turn);
-    bool cubic = (profile == PR_CUBIC);
-    ui->lambdaSpinBox->setEnabled(!cubic);
-    ui->radiusSpinBox->setEnabled(!cubic);
-    ui->cubicLengthSpinBox->setEnabled(cubic);
-    ui->cubicGammaSpinBox->setEnabled(cubic);
     rePaint();
 }
 

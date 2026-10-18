@@ -27,8 +27,15 @@ set(SOURCE_FILES
         pose.h
         track.h
         track.cpp
-        turn_physics.h
-        turn_physics.cpp
+        turn_profile.h
+        turn_profile.cpp
+        segmented_profile.h
+        segmented_profile.cpp
+        profile_registry.cpp
+        profile_sinusoid.cpp
+        profile_trapezoid.cpp
+        profile_cubic.cpp
+        profile_quadratic.cpp
         resources.qrc
         pathitem.cpp
         pathitem.h

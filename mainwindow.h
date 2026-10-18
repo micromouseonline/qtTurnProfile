@@ -9,35 +9,26 @@
 #include "track.h"
 #include "pathitem.h"
 #include "robotstate.h"
-#include "turn_physics.h"
+#include <array>
+#include <vector>
+#include "turn_profile.h"
 
 namespace Ui {
     class MainWindow;
 }
 
-// parameters for each turn
-struct TurnParams {
-    float baseX;
-    float baseY;
-    float offs;
-    float lambda;
-    float radius;
-    float startAngle;
-    float angle;
-    float speed;   // this could be acceleration to match Decimus
-    float length;  // for cubics
-};
-
-// index inti the turn parameters table
-enum Turn_t {
-    TURN_SS90F = 0, TURN_SS180, TURN_SD45, TURN_SD135, TURN_DS45, TURN_DS135, TURN_DD90, TURN_SS90E, TURN_TYPE_COUNT
-};
-
 const float loopInterval = 0.001;
 
-extern TurnParams defaultParams[TURN_TYPE_COUNT];
+/// Editable values for one turn of one profile; geometry is in turnGeometry
+struct TurnValues {
+    float offset;               ///< start offset back from the turn base point, mm
+    float speed;                ///< turn speed, mm/s
+    std::vector<float> values;  ///< profile parameters, in the order of TurnProfile::params()
+};
 
 class QButtonGroup;
+class QDoubleSpinBox;
+class QLabel;
 
 class MainWindow : public QMainWindow {
 Q_OBJECT
@@ -60,7 +51,7 @@ public slots:
 
 private slots:
 
-    void selectProfile(int profile);
+    void selectProfile(int profile_index);
 
     void selectTurn(int turn_index);
 
@@ -74,14 +65,6 @@ private slots:
 
     void on_progressSlider_valueChanged(int value);
 
-    void on_radiusSpinBox_valueChanged(int arg1);
-
-    void on_cubicLengthSpinBox_valueChanged(int arg1);
-
-    void on_cubicGammaSpinBox_valueChanged(int arg1);
-
-    void on_lambdaSpinBox_valueChanged(int arg1);
-
     void on_accelerationSpinBox_valueChanged(int arg1);
 
     void on_turnSpeedSpinBox_valueChanged(int arg1);
@@ -91,27 +74,41 @@ private slots:
     void on_sensorAngleSpinBox_valueChanged(int arg1);
 
 private:
-    /// Working parameters, one set per profile and turn type. Edits persist
-    /// until reset; profiles are independent of each other.
-    TurnParams profileParams[PR_COUNT][TURN_TYPE_COUNT]{};
+    /// Working values, indexed [profile][turn]. Edits persist until reset;
+    /// profiles are independent of each other.
+    std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
     Turn_t turn = TURN_SS90F;
-    int turnProfile = PR_TRAPEZOID;
+    int turnProfile = 0;  ///< index into profile_registry()
     Ui::MainWindow *ui;
     MouseItem *theMouse;
     PathItem *thePath;
     QGraphicsScene *mouseScene;
-    QButtonGroup *profileGroup;  ///< profile radio buttons, id = Profile_t
+    QButtonGroup *profileGroup;  ///< profile radio buttons, id = registry index
     QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
     QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
+    std::vector<QLabel *> paramLabels;          ///< labels for the current profile's parameters
+    std::vector<QDoubleSpinBox *> paramBoxes;   ///< spinboxes for the current profile's parameters
 
-    /// Working parameters for the current profile and turn type.
-    TurnParams &params() { return profileParams[turnProfile][turn]; }
+    /// The current profile
+    const TurnProfile &profile() const { return *profile_registry()[turnProfile]; }
+
+    /// Working values for the current profile and turn type
+    TurnValues &params() { return stored[turnProfile][turn]; }
+
+    /// Working values for the current profile and turn type
+    const TurnValues &params() const { return stored[turnProfile][turn]; }
 
     void setParams(int turn_index);
 
-    float maxLambda() const;
+    void buildProfileButtons();
 
-    TurnInput turnInput() const;
+    void buildParamRows();
+
+    void layoutParameterBox();
+
+    void paramChanged(int index, double value);
+
+    TurnSetup turnSetup() const;
 
     float peakAcceleration(float speed) const;
 
@@ -121,7 +118,7 @@ private:
 
     void updateStartPosition();
 
-    void clampLambda();
+    void constrainParams();
 
     void showProgress();
 

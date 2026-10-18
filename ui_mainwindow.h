@@ -52,28 +52,15 @@ public:
     QGroupBox *gbSpinners;
     QSpinBox *turnSpeedSpinBox;
     QSpinBox *accelerationSpinBox;
-    QSpinBox *radiusSpinBox;
-    QSpinBox *lambdaSpinBox;
     QSpinBox *offsetSpinBox;
     QSpinBox *sensorAngleSpinBox;
-    QSpinBox *cubicLengthSpinBox;
-    QSpinBox *cubicGammaSpinBox;
     QLabel *lblSpeed;
     QLabel *lblAcc;
-    QLabel *lblRadius;
-    QLabel *lblLambda;
     QLabel *lblOffset;
     QLabel *lblSensorAngle;
-    QLabel *lblCubicLength;
-    QLabel *lblCubicGamma;
 
     QGroupBox *gbTurnProfile;
-    QWidget *layoutWidget;
-    QVBoxLayout *verticalLayout;
-    QRadioButton *rbTrapezoid;
-    QRadioButton *rbQuadratic;
-    QRadioButton *rbSinusoid;
-    QRadioButton *rbCubic;
+    QVBoxLayout *vlProfiles;
     QGroupBox *gbTurnType;
     QVBoxLayout *vlTurnTypes;
     QRadioButton *rbSS90F;
@@ -175,22 +162,7 @@ public:
         accelerationSpinBox->setSingleStep(100);
         accelerationSpinBox->setValue(9800);
 
-        radiusSpinBox = new QSpinBox(gbSpinners);
-        radiusSpinBox->setObjectName(QStringLiteral("radiusSpinBox"));
-        radiusSpinBox->setGeometry(QRect(70, 90, 70, 24));
-        radiusSpinBox->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        radiusSpinBox->setAccelerated(true);
-        radiusSpinBox->setMinimum(15);
-        radiusSpinBox->setMaximum(270);
-        radiusSpinBox->setValue(90);
 
-        lambdaSpinBox = new QSpinBox(gbSpinners);
-        lambdaSpinBox->setObjectName(QStringLiteral("lambdaSpinBox"));
-        lambdaSpinBox->setGeometry(QRect(70, 120, 70, 24));
-        lambdaSpinBox->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        lambdaSpinBox->setMinimum(0);
-        lambdaSpinBox->setMaximum(200);
-        lambdaSpinBox->setValue(50);
 
         offsetSpinBox = new QSpinBox(gbSpinners);
         offsetSpinBox->setObjectName(QStringLiteral("offsetSpinBox"));
@@ -207,21 +179,7 @@ public:
         sensorAngleSpinBox->setMaximum(98);
         sensorAngleSpinBox->setValue(30);
 
-        cubicLengthSpinBox = new QSpinBox(gbSpinners);
-        cubicLengthSpinBox->setObjectName(QStringLiteral("cubicLengthSpinBox"));
-        cubicLengthSpinBox->setGeometry(QRect(70, 210, 70, 24));
-        cubicLengthSpinBox->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        cubicLengthSpinBox->setMaximum(500);
-        cubicLengthSpinBox->setMinimum(50);
-        cubicLengthSpinBox->setValue(100);
 
-        cubicGammaSpinBox = new QSpinBox(gbSpinners);
-        cubicGammaSpinBox->setObjectName(QStringLiteral("cubicGammaSpinBox"));
-        cubicGammaSpinBox->setGeometry(QRect(70, 240, 70, 24));
-        cubicGammaSpinBox->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        cubicGammaSpinBox->setMaximum(50);
-        cubicGammaSpinBox->setMinimum(0);
-        cubicGammaSpinBox->setValue(0);
 
         lblSpeed = new QLabel(gbSpinners);
         lblSpeed->setObjectName(QStringLiteral("label_4"));
@@ -233,15 +191,7 @@ public:
         lblAcc->setGeometry(QRect(10, 60, 55, 24));
         lblAcc->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-        lblRadius = new QLabel(gbSpinners);
-        lblRadius->setObjectName(QStringLiteral("label_7"));
-        lblRadius->setGeometry(QRect(10, 90, 55, 24));
-        lblRadius->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-        lblLambda = new QLabel(gbSpinners);
-        lblLambda->setObjectName(QStringLiteral("label_6"));
-        lblLambda->setGeometry(QRect(10, 120, 55, 24));
-        lblLambda->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
         lblOffset = new QLabel(gbSpinners);
         lblOffset->setObjectName(QStringLiteral("label_8"));
@@ -253,44 +203,15 @@ public:
         lblSensorAngle->setGeometry(QRect(10, 180, 55, 20));
         lblSensorAngle->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-        lblCubicLength = new QLabel(gbSpinners);
-        lblCubicLength->setObjectName(QStringLiteral("lblCubicLength"));
-        lblCubicLength->setGeometry(QRect(10, 210, 55, 20));
-        lblCubicLength->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-        lblCubicGamma = new QLabel(gbSpinners);
-        lblCubicGamma->setObjectName(QStringLiteral("lblCubicGamma"));
-        lblCubicGamma->setGeometry(QRect(10, 240, 55, 20));
-        lblCubicGamma->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
         //===============================
         gbTurnProfile = new QGroupBox(centralWidget);
         gbTurnProfile->setObjectName(QStringLiteral("gbTurnProfile"));
         gbTurnProfile->setGeometry(QRect(610, 500, 200, 130));
-        layoutWidget = new QWidget(gbTurnProfile);
-        layoutWidget->setObjectName(QStringLiteral("layoutWidget"));
-        layoutWidget->setGeometry(QRect(10, 20, 150, 100));
-        verticalLayout = new QVBoxLayout(layoutWidget);
-        verticalLayout->setSpacing(6);
-        verticalLayout->setContentsMargins(11, 11, 11, 11);
-        verticalLayout->setObjectName(QStringLiteral("verticalLayout"));
-        verticalLayout->setContentsMargins(0, 0, 0, 0);
-
-        rbSinusoid = new QRadioButton(layoutWidget);
-        rbSinusoid->setObjectName(QStringLiteral("rbSinusoid"));
-        verticalLayout->addWidget(rbSinusoid);
-
-        rbTrapezoid = new QRadioButton(layoutWidget);
-        rbTrapezoid->setObjectName(QStringLiteral("rbTrapezoid"));
-        verticalLayout->addWidget(rbTrapezoid);
-
-        rbCubic = new QRadioButton(layoutWidget);
-        rbCubic->setObjectName(QStringLiteral("rbCubic"));
-        verticalLayout->addWidget(rbCubic);
-
-        rbQuadratic = new QRadioButton(layoutWidget);
-        rbQuadratic->setObjectName(QStringLiteral("rbQuadratic"));
-        verticalLayout->addWidget(rbQuadratic);
+        // profile radio buttons are added by MainWindow from the profile registry
+        vlProfiles = new QVBoxLayout(gbTurnProfile);
+        vlProfiles->setObjectName(QStringLiteral("vlProfiles"));
 
         gbTurnType = new QGroupBox(centralWidget);
         gbTurnType->setObjectName(QStringLiteral("gpTurnType"));
@@ -356,20 +277,12 @@ public:
         btnReset->setText(QApplication::translate("MainWindow", "Reset", 0));
         lblStartY->setText(QApplication::translate("MainWindow", "Start Y", 0));
         lblStartX->setText(QApplication::translate("MainWindow", "Start X", 0));
-        lblRadius->setText(QApplication::translate("MainWindow", "Radius:", 0));
         lblSpeed->setText(QApplication::translate("MainWindow", "Speed:", 0));
         lblAcc->setText(QApplication::translate("MainWindow", "Acc:", 0));
-        lblLambda->setText(QApplication::translate("MainWindow", "Lambda:", 0));
         lblOffset->setText(QApplication::translate("MainWindow", "Offset:", 0));
         lblSensorAngle->setText(QApplication::translate("MainWindow", "Sensors:", 0));
-        lblCubicLength->setText(QApplication::translate("MainWindow", "Length:", 0));
-        lblCubicGamma->setText(QApplication::translate("MainWindow", "Gamma:", 0));
         gbSpinners->setTitle(QApplication::translate("MainWindow", "Parameters", 0));
         gbTurnProfile->setTitle(QApplication::translate("MainWindow", "Turn Profile", 0));
-        rbTrapezoid->setText(QApplication::translate("MainWindow", "Trapezoid", 0));
-        rbQuadratic->setText(QApplication::translate("MainWindow", "Quadratic", 0));
-        rbSinusoid->setText(QApplication::translate("MainWindow", "Sinusoid", 0));
-        rbCubic->setText(QApplication::translate("MainWindow", "Cubic Spiral", 0));
         gbTurnType->setTitle(QApplication::translate("MainWindow", "Turn Type", 0));
         rbSS90F->setText(QApplication::translate("MainWindow", "SS90F", 0));
         rbSS180->setText(QApplication::translate("MainWindow", "SS180", 0));

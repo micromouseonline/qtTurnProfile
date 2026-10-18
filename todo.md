@@ -96,7 +96,7 @@ Commit after each verified step.
   - Result: 128 reference cases; 119 bit-identical, 9 trapezoid differ by float
     rounding only (exit <= 1.6e-5 mm/deg, record counts identical).
 
-- [ ] 3.4 Extensible profile types (builds on 3.2, 3.3)
+- [x] 3.4 Extensible profile types (builds on 3.2, 3.3)
   - Goal: adding a profile = one new source file + one registry line, no MainWindow edits.
   - Each profile defines:
     - name and description
@@ -111,8 +111,16 @@ Commit after each verified step.
     shared and outside profiles.
   - Test: existing 4 profiles reproduce reference values from 3.3; add a dummy
     profile to confirm no other files need changing, then remove it.
+  - Done: `TurnProfile` interface + registry (`turn_profile.h`, `profile_registry.cpp`),
+    `SegmentedProfile` base, one `profile_<name>.cpp` per profile; shared `turnGeometry`.
+    Profile buttons and parameter rows generated; offset and speed stay per profile.
+    Gamma removed (cubic constant speed). `turn_physics.*` replaced.
+    Adding a profile: new file, 2 lines in profile_registry.cpp, 1 line in CMakeLists.txt.
+  - Result: 185 reference cases bit-identical (incl. spinbox values, start pos, retention).
+    Only change: summary Min Radius for cubic now true min radius (e.g. SS90F 105, was 112).
+    Dummy 3-parameter profile worked with no other changes; removed.
 
-- [ ] 3.5 Store gamma per turn like other parameters (likely absorbed by 3.4)
+- [x] 3.5 Store gamma per turn like other parameters (obsolete: gamma removed in 3.4)
 
 - [ ] 3.6 Single definition of PI / RADIANS / DEGREES
   - Replace 3 duplicate macros with one header of constexpr functions; consistent float/double use.
