@@ -60,10 +60,12 @@ Commit after each verified step.
   - Split `rePaint()` into recalculate and update-mouse-position.
   - Test: drag slider smoothly; label and mouse position still correct.
 
-- [ ] 2.2 Avoid cascade of repaints when selecting a turn/profile
+- [x] 2.2 Avoid cascade of repaints when selecting a turn/profile
   - `setParams()` sets 4 spinboxes, each triggers `rePaint()`, then handler repaints again.
   - Block signals during bulk update, repaint once.
   - Test: one recalculation per turn/profile click (temporary qDebug counter).
+  - Result: turn 5-6 -> 1, profile 3 -> 1. Also fixed: start X/Y not updated when
+    new turn had same offset but different base/angle (e.g. SS90E -> DS45).
 
 - [ ] 2.3 Draw maze walls once
   - Walls/grid are static; stop clearing and rebuilding them each repaint.

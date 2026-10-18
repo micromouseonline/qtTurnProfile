@@ -130,7 +130,6 @@ private:
     TurnParams profileParams[PR_COUNT][TURN_TYPE_COUNT]{};
     Turn_t turn = TURN_SS90F;
     int turnProfile = PR_TRAPEZOID;
-    bool loadingParams = false;  ///< true while setParams() loads spinboxes
     Ui::MainWindow *ui;
     MouseItem *theMouse;
     PathItem *thePath;
@@ -148,6 +147,8 @@ private:
     float speedForAcceleration(float acceleration) const;
 
     void updateAccelerationBox();
+
+    void updateStartPosition();
 
     void clampLambda();
 

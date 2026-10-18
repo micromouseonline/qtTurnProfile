@@ -757,18 +757,26 @@ void MainWindow::on_turnSpeedSpinBox_valueChanged(int arg1) {
 
 void MainWindow::on_offsetSpinBox_valueChanged(int arg1) {
     params().offs = arg1;
-    float baseX = params().baseX;
-    float baseY = params().baseY;
-    float startAngle = params().startAngle;
-    float start_x = baseX - double(arg1) * cos(PI / 2 + RADIANS(startAngle));
-    float start_y = baseY - double(arg1) * sin(PI / 2 + RADIANS(startAngle));
+    updateStartPosition();
+    rePaint();
+}
+
+/**
+ * @brief Set the start X/Y boxes from the turn base point, start angle and offset.
+ *
+ * The start point is the offset distance back from the base point along the
+ * start heading. Signals are blocked; the caller repaints.
+ */
+void MainWindow::updateStartPosition() {
+    float offset = ui->offsetSpinBox->value();
+    float start_x = params().baseX - offset * cos(PI / 2 + RADIANS(params().startAngle));
+    float start_y = params().baseY - offset * sin(PI / 2 + RADIANS(params().startAngle));
     ui->startXSpinBox->blockSignals(true);
     ui->startXSpinBox->setValue(int(start_x));
     ui->startXSpinBox->blockSignals(false);
     ui->startYSpinBox->blockSignals(true);
     ui->startYSpinBox->setValue(int(start_y));
     ui->startYSpinBox->blockSignals(false);
-    rePaint();
 }
 
 void MainWindow::on_rbTrapezoid_clicked() {
@@ -816,18 +824,32 @@ void MainWindow::on_sensorAngleSpinBox_valueChanged(int arg1) {
     rePaint();
 }
 
+/**
+ * @brief Load the stored parameters for a turn into the spinboxes.
+ *
+ * Signals are blocked while loading so the handlers do not repaint once per
+ * value; their side effects (acceleration and start position) are done once
+ * at the end. Does not repaint: the caller calls rePaint() once.
+ *
+ * @param turn_index turn type (Turn_t) in the current profile
+ */
 void MainWindow::setParams(int turn_index) {
-    // spinbox handlers repaint as each value loads; suppress lambda clamping
-    // until all values for the new turn are in place
-    loadingParams = true;
-    ui->radiusSpinBox->setValue(int(profileParams[turnProfile][turn_index].radius));
-    ui->lambdaSpinBox->setValue(int(profileParams[turnProfile][turn_index].lambda));
-    ui->offsetSpinBox->setValue(int(profileParams[turnProfile][turn_index].offs));
-    ui->turnSpeedSpinBox->setValue(int(profileParams[turnProfile][turn_index].speed));
-    ui->cubicLengthSpinBox->setValue(int(profileParams[turnProfile][turn_index].length));
-    loadingParams = false;
-    // the turn angle also affects peak acceleration and has no spinbox handler
+    const TurnParams &p = profileParams[turnProfile][turn_index];
+    QSpinBox *boxes[] = {ui->radiusSpinBox, ui->lambdaSpinBox, ui->offsetSpinBox,
+                         ui->turnSpeedSpinBox, ui->cubicLengthSpinBox};
+    for (QSpinBox *box : boxes) {
+        box->blockSignals(true);
+    }
+    ui->radiusSpinBox->setValue(int(p.radius));
+    ui->lambdaSpinBox->setValue(int(p.lambda));
+    ui->offsetSpinBox->setValue(int(p.offs));
+    ui->turnSpeedSpinBox->setValue(int(p.speed));
+    ui->cubicLengthSpinBox->setValue(int(p.length));
+    for (QSpinBox *box : boxes) {
+        box->blockSignals(false);
+    }
     updateAccelerationBox();
+    updateStartPosition();
 }
 
 /**
@@ -909,13 +931,9 @@ float MainWindow::maxLambda() const {
 /**
  * @brief Reduce lambda to maxLambda() if it is too large.
  *
- * Updates the spinbox (without signals) and the stored parameter. Skipped
- * while setParams() is loading, as radius and lambda may belong to different turns.
+ * Updates the spinbox (without signals) and the stored parameter.
  */
 void MainWindow::clampLambda() {
-    if (loadingParams) {
-        return;
-    }
     int limit = int(maxLambda());
     if (ui->lambdaSpinBox->value() > limit) {
         ui->lambdaSpinBox->blockSignals(true);
