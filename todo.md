@@ -152,7 +152,8 @@ Commit after each verified step.
   - Done: none remain (tables replaced in 3.4). Staying on C++17; `CMAKE_CXX_EXTENSIONS OFF` (strict `-std=c++17`). Clean `-Wpedantic` build.
 - [x] 4.2 Raise `cmake_minimum_required` to 3.16 (removes deprecation warning, matches README).
   - Done: 3.16. Oldest warning-free on CMake 4.4 is 3.10, but Qt6Config itself needs >= 3.16 (this Qt 6.10 build wants 3.22), so lower gains nothing.
-- [ ] 4.3 New-style `connect()` (function pointers) instead of `SIGNAL()/SLOT()` where manual connects remain.
+- [x] 4.3 New-style `connect()` (function pointers) instead of `SIGNAL()/SLOT()` where manual connects remain.
+  - Done: no `SIGNAL()/SLOT()` left (removed in 1.x/3.4); the 3 manual connects are new-style. 9 `on_<widget>_<signal>` slots still rely on `connectSlotsByName`; convert with 5.1.
 - [ ] 4.4 Include hygiene: `<algorithm>` not `"algorithm"`; drop `<QtGui>` umbrella include from header.
 
 ## 5. UI
