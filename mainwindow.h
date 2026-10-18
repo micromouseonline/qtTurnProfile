@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QtGui>
 
 #include "mouseitem.h"
 #include "qcustomplot.h"
@@ -27,6 +26,8 @@ struct TurnValues {
 
 class QButtonGroup;
 class QDoubleSpinBox;
+class QGraphicsItemGroup;
+class QGraphicsScene;
 class QLabel;
 
 class MainWindow : public QMainWindow {

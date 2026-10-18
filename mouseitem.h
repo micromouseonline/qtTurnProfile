@@ -1,7 +1,6 @@
 #ifndef GRAPHICMOUSE_H
 #define GRAPHICMOUSE_H
 
-#include <QDebug>
 #include <QGraphicsItem>
 #include <QPainter>
 #include "pose.h"

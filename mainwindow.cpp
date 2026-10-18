@@ -3,7 +3,7 @@
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <cmath>
-#include "algorithm"
+#include <algorithm>
 #include "ui_mainwindow.h"
 #include "angles.h"
 #include "track.h"

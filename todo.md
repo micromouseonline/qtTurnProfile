@@ -154,7 +154,8 @@ Commit after each verified step.
   - Done: 3.16. Oldest warning-free on CMake 4.4 is 3.10, but Qt6Config itself needs >= 3.16 (this Qt 6.10 build wants 3.22), so lower gains nothing.
 - [x] 4.3 New-style `connect()` (function pointers) instead of `SIGNAL()/SLOT()` where manual connects remain.
   - Done: no `SIGNAL()/SLOT()` left (removed in 1.x/3.4); the 3 manual connects are new-style. 9 `on_<widget>_<signal>` slots still rely on `connectSlotsByName`; convert with 5.1.
-- [ ] 4.4 Include hygiene: `<algorithm>` not `"algorithm"`; drop `<QtGui>` umbrella include from header.
+- [x] 4.4 Include hygiene: `<algorithm>` not `"algorithm"`; drop `<QtGui>` umbrella include from header.
+  - Done: also forward-declared QGraphicsScene/QGraphicsItemGroup in mainwindow.h; dropped unused `<QDebug>` from mouseitem.h.
 
 ## 5. UI
 
