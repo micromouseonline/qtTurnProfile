@@ -15,14 +15,17 @@ constexpr float GRAVITY = 9806.65f;
 /**
  * @brief Simplified lateral tyre slip, shared by all profiles.
  *
- * Steady state, linear, no saturation: the slip angle between heading and
- * velocity is
+ * Linear, no saturation. Heading follows the commanded omega exactly (gyro
+ * controlled); only the direction of travel (course) changes. The slip angle
+ * is heading - course. The tyre side force is proportional to slip and to the
+ * normal load, and it is what turns the course:
  *
- *     slip = gradient * (a / g) / load_factor
+ *     d(course)/dt = slip / tau,   tau = gradient (rad) * v / (g * load_factor)
  *
- * where a is the centripetal acceleration. Heading follows the commanded
- * omega exactly (gyro controlled); only the direction of travel changes, so
- * the path drifts to the outside of the turn.
+ * so the course is a first order lag of the heading. In a constant radius arc
+ * slip settles to gradient * (a / g) / load_factor, a being the centripetal
+ * acceleration. The path drifts to the outside of the turn, never the inside,
+ * and slip dies away in the straight after the turn.
  *
  * The gradient can be measured by running the robot straight across a slope
  * (no fan): gradient = measured crab angle / tan(slope angle).
@@ -76,17 +79,25 @@ public:
     /**
      * @brief Advance one interval at the current speed and omega.
      *
-     * The position moves along the velocity direction, theta - slip, where
-     * slip is found from the centripetal acceleration (see SlipParams).
+     * The position moves along the course, heading - slip, at the start of
+     * the step. Slip then advances by the exact solution of
+     * d(slip)/dt = omega - slip / tau over the step (see SlipParams), so it is
+     * stable for any tau and settles to exactly omega * tau in a constant arc.
+     * With no slip the course is the heading.
      */
     void update() {
         float delta = speed * m_interval;
         time += m_interval;
         distance += delta;
-        slip = m_slip.gradient * (speed * float(radians(omega)) / GRAVITY) / m_slip.load_factor;
-        float direction = theta - slip;
-        x += -delta * cos(PI / 2 + radians(direction));
-        y += -delta * sin(PI / 2 + radians(direction));
+        x += -delta * cos(PI / 2 + radians(theta - slip));
+        y += -delta * sin(PI / 2 + radians(theta - slip));
+        float tau = float(radians(m_slip.gradient)) * speed / (GRAVITY * m_slip.load_factor);
+        if (tau > 0) {
+            float settled = omega * tau;
+            slip = settled + (slip - settled) * std::exp(-m_interval / tau);
+        } else {
+            slip = 0;
+        }
         theta += omega * m_interval;
         pose.set_pose(x, y, theta);
         acceleration = speed * radians(omega);
@@ -104,7 +115,7 @@ public:
     float omega{};
     float speed{};
     float acceleration{};
-    float slip{};  ///< slip angle, degrees: heading minus velocity direction
+    float slip{};  ///< slip angle, degrees: heading minus course (direction of travel)
     int phase{};
 private:
     float m_oldOmega{};

@@ -105,11 +105,16 @@ void MainWindow::showTurnSummary() const {
     ui->textEdit->append("     Distance: " + QString::number(track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
     ui->textEdit->append("         Time: " + QString::number(track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
     ui->textEdit->append("   Exit Speed: " + QString::number(track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
-    // slip moves only the position: exit error is the offset from the no slip exit point
-    Pose ideal_exit = idealTrack.get_exit_pose();
+    // slip moves only the position, and carries on into the leadout: the error is the
+    // offset from the no slip path at the end of the leadout, where slip has died away
+    Pose end_pose = track.empty() ? Pose() : track.get_pose_at(track.record_count() - 1);
+    Pose ideal_end = idealTrack.empty() ? Pose() : idealTrack.get_pose_at(idealTrack.record_count() - 1);
     ui->textEdit->append("     Max Slip: " + QString::number(track.get_max_slip(), 'f', 1).rightJustified(6, ' ') + " deg");
-    ui->textEdit->append("      Exit dX: " + QString::number(exit_pose.x() - ideal_exit.x(), 'f', 1).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("      Exit dY: " + QString::number(exit_pose.y() - ideal_exit.y(), 'f', 1).rightJustified(6, ' ') + " mm");
+    ui->textEdit->append("       End dX: " + QString::number(end_pose.x() - ideal_end.x(), 'f', 1).rightJustified(6, ' ') + " mm");
+    ui->textEdit->append("       End dY: " + QString::number(end_pose.y() - ideal_end.y(), 'f', 1).rightJustified(6, ' ') + " mm");
+    // slip left when omega reaches zero; it then decays with time constant tau (see SlipParams)
+    float exit_slip = track.empty() ? 0 : track.get_slip_at(track.finish_index());
+    ui->textEdit->append("    Exit Slip: " + QString::number(exit_slip, 'f', 1).rightJustified(6, ' ') + " deg");
     for (const SummaryLine &line : profile().summary(turnSetup(), params().values)) {
         ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
                              QString::number(line.value, 'f', line.decimals).rightJustified(6, ' ') + " " +

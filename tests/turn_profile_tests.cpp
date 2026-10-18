@@ -17,7 +17,7 @@
  * "r15" (radius 15, lambda clamped), "L60" (cubic length 60).
  *
  * Slip checks (not in the baseline) compare each default case with slip on
- * against the same case without slip.
+ * against the same case without slip (see checkSlip()).
  *
  * Exit code 0 when everything passes.
  */
@@ -230,16 +230,36 @@ std::string runCase(Case c) {
 }
 
 /**
+ * @brief Check the peak slip of a track against the settled value.
+ *
+ * Slip lags the acceleration, so it reaches the settled value
+ * gradient * (a / g) / load factor only if the arc is long enough, and never
+ * exceeds it.
+ *
+ * @param min_ratio smallest allowed peak / settled; short turns at high speed
+ *        (tau grows with speed while the turn gets shorter) reach less
+ */
+void checkPeakSlip(const Track &track, const SlipParams &slip, const std::string &w, const char *what,
+                   float min_ratio) {
+    float settled = slip.gradient * track.get_max_acceleration() / GRAVITY / slip.load_factor;
+    float ratio = track.get_max_slip() / settled;
+    char buf[160];
+    std::snprintf(buf, sizeof buf, "%s: max slip %.4f is %.3f of settled %.4f", what, track.get_max_slip(), ratio,
+                  settled);
+    check(ratio > min_ratio && ratio < 1.001f, w, buf);
+}
+
+/**
  * @brief Tyre slip checks for every profile and turn at the defaults.
  *
  * With slip on, heading, distance and record count must equal the no slip
- * case; only the position changes. The peak slip angle must follow
- * gradient * (peak acceleration / g) / load factor, so it scales with
- * speed squared and inversely with the load factor. The exit point must move
- * to the outside of the turn, taken as the outward normal at mid turn.
+ * case; only the position changes. Peak slip is checked against the settled
+ * value (checkPeakSlip()) at the defaults, at load factor 2 and at double
+ * speed (upper bound only, and at least double the default slip). The path must never cross to the inside of the start line, slip must
+ * die away in the leadout, and the exit point must move to the outside of the
+ * turn, taken as the outward normal at mid turn.
  */
 void checkSlip() {
-    const float gradient = 5;
     for (const TurnProfile *profile : profile_registry()) {
         for (int t = 0; t < TURN_TYPE_COUNT; t++) {
             Turn_t turn = Turn_t(t);
@@ -253,7 +273,7 @@ void checkSlip() {
             profile->simulate(setup, d.speed, values, ideal);
             check(ideal.get_max_slip() == 0, w, "slip without slip model");
 
-            setup.slip.gradient = gradient;
+            setup.slip.gradient = 5;
             Track slipped;
             profile->simulate(setup, d.speed, values, slipped);
             check(slipped.record_count() == ideal.record_count() && slipped.finish_index() == ideal.finish_index(),
@@ -266,16 +286,25 @@ void checkSlip() {
                 finite = finite && std::isfinite(p.x()) && std::isfinite(p.y()) && std::isfinite(slipped.get_slip_at(i));
             }
             check(finite, w, "non-finite values with slip");
-            check(slipped.get_slip_at(slipped.record_count() - 1) == 0, w, "slip in leadout");
+            checkPeakSlip(slipped, setup.slip, w, "defaults", 0.9f);
 
-            // peak slip follows the simulated peak acceleration
             char buf[160];
-            float expected = gradient * slipped.get_max_acceleration() / GRAVITY;
-            float rel = std::fabs(slipped.get_max_slip() - expected) / expected;
-            std::snprintf(buf, sizeof buf, "max slip %.4f vs expected %.4f", slipped.get_max_slip(), expected);
-            check(rel < 0.01f, w, buf);
+            // heading h = (sin th, -cos th), turning towards n = (cos th, sin th)
+            float start = radians(setup.start_angle);
+            Pose p0 = slipped.get_pose_at(0);
+            float inside = 0;
+            for (int i = 0; i < slipped.record_count(); i++) {
+                Pose p = slipped.get_pose_at(i);
+                inside = std::min(inside, (p.x() - p0.x()) * std::cos(start) + (p.y() - p0.y()) * std::sin(start));
+            }
+            std::snprintf(buf, sizeof buf, "path %.4f mm on the wrong side of the start line", -inside);
+            check(inside > -1e-3f, w, buf);
 
-            // exit point displaced outward: heading h = (sin th, -cos th), turning towards (cos th, sin th)
+            float last = slipped.get_slip_at(slipped.record_count() - 1);
+            std::snprintf(buf, sizeof buf, "leadout end slip %.4f not below 1%% of max %.4f", last,
+                          slipped.get_max_slip());
+            check(std::fabs(last) < 0.01f * slipped.get_max_slip(), w, buf);
+
             float mid = radians(setup.start_angle + setup.turn_angle / 2);
             float dx = slipped.get_exit_pose().x() - ideal.get_exit_pose().x();
             float dy = slipped.get_exit_pose().y() - ideal.get_exit_pose().y();
@@ -283,23 +312,17 @@ void checkSlip() {
             std::snprintf(buf, sizeof buf, "exit displacement %.3f mm not outward", outward);
             check(outward > 0, w, buf);
 
-            // doubling the load factor halves the slip
             setup.slip.load_factor = 2;
             Track loaded;
             profile->simulate(setup, d.speed, values, loaded);
-            rel = std::fabs(2 * loaded.get_max_slip() - slipped.get_max_slip()) / slipped.get_max_slip();
-            std::snprintf(buf, sizeof buf, "load factor 2 slip %.4f vs %.4f / 2", loaded.get_max_slip(),
-                          slipped.get_max_slip());
-            check(rel < 1e-5f, w, buf);
+            checkPeakSlip(loaded, setup.slip, w, "load factor 2", 0.9f);
+            check(loaded.get_max_slip() < slipped.get_max_slip(), w, "load factor 2 does not reduce slip");
 
-            // doubling the speed quadruples the slip
             setup.slip.load_factor = 1;
             Track fast;
             profile->simulate(setup, 2 * d.speed, values, fast);
-            rel = std::fabs(fast.get_max_slip() - 4 * slipped.get_max_slip()) / (4 * slipped.get_max_slip());
-            std::snprintf(buf, sizeof buf, "double speed slip %.4f vs 4 * %.4f", fast.get_max_slip(),
-                          slipped.get_max_slip());
-            check(rel < 0.01f, w, buf);
+            checkPeakSlip(fast, setup.slip, w, "double speed", 0);
+            check(fast.get_max_slip() > 2 * slipped.get_max_slip(), w, "double speed does not double slip");
         }
     }
 }

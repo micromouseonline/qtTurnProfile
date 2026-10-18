@@ -203,17 +203,20 @@ Commit after each verified step.
 ## 7. Features
 
 - [x] 7.1 Simulate tyre slip and slip angle
-  - Simplified model: lateral slip only (constant speed, no per-wheel slip), steady state,
-    linear, no saturation. Heading follows commanded omega (gyro); velocity direction =
-    heading - slip, slip = gradient * (a / g) / load factor.
-  - Controls (Slip box, shared by all profiles/turns): Gradient deg/g (0 = off), measured
+  - Simplified model: lateral slip only (constant speed, no per-wheel slip), linear, no saturation.
+    Heading follows commanded omega (gyro); course = heading - slip. Side force ~ slip * load turns
+    the course: d(slip)/dt = omega - slip / tau, tau = gradient(rad) * v / (g * load). Settles to
+    gradient * (a / g) / load in a constant arc; exact per-step solution, stable for any tau.
+  - Steady state model (slip = gradient * a / g) tried first and dropped: path swerved to the inside
+    at turn entry (4.8 mm at 20 deg/g), and end point diverged from the lag model above ~5 deg/g.
+  - Controls (Parameters box, shared by all profiles/turns): Slip deg/g (0 = off), measured
     across a slope without fan as crab angle / tan(slope); Load = (weight + downforce) / weight.
   - Done: `SlipParams` and slip in `RobotState::update()` (robotstate.h), `TurnSetup::slip`,
-    `Track` slip per record. Ideal (no slip) path drawn faint; slip trace on own graph axis;
-    velocity arrow shows slip; summary Max Slip, Exit dX/dY vs ideal.
-  - Result: gradient 0 -> 88 baseline cases unchanged. Slip tests (all profiles x turns):
-    heading/length/count unchanged, peak slip = formula (1%), exit outward, 2x load -> 1/2,
-    2x speed -> 4x. SS90F sinusoid default at 5.5 deg/g: 5.5 deg, exit (-11.2, -10.2) mm.
+    `Track` slip per record. Ideal (no slip) path drawn faint; slip plot above the speed plot,
+    same time axis; velocity arrow shows slip; summary Max Slip, End dX/dY vs ideal at leadout end.
+  - Result: slip 0 -> 88 baseline cases unchanged. Slip tests (all profiles x turns): heading/length/
+    count unchanged, peak <= settled value (>= 90% at defaults), never inside start line, slip gone by
+    leadout end, exit outward. SS90F sinusoid default at 20 deg/g: max 19.0 deg, end (-33.6, -43.3) mm.
 
 - [ ] 7.2 Rework phase calculation for segmented turns (trapezoid, quadratic, sinusoid)
   - Phases currently switch on theta, which lags by a step; turn loops also stop at turnDistance (1.5).
