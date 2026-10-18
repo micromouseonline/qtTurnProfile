@@ -308,8 +308,8 @@ void MainWindow::drawBreadcrumbs() {
         for (int i = 1; i < idealTrack.record_count(); i++) {
             idealPath.lineTo(idealTrack.get_pose_at(i).x(), idealTrack.get_pose_at(i).y());
         }
-        QPen idealPen(QColor(255, 255, 255, 110));
-        idealPen.setWidthF(1.0);
+        QPen idealPen(QColor(255, 255, 255, 150));
+        idealPen.setWidthF(3.0);
         mouseScene->addPath(idealPath, idealPen)->setParentItem(breadcrumbs);
     }
     QPen markerPen;

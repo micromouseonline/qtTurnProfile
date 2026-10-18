@@ -36,6 +36,8 @@ private:
 
     void drawVelocity(QPainter *painter) const;
 
+    void drawArrow(QPainter *painter, qreal length, qreal angle, const QColor &colour) const;
+
     void
     drawSensor(QPainter *painter, const QPoint &sensorOrigin, qreal sensorAngle) const;
 };

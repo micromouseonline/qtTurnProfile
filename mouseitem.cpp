@@ -68,10 +68,11 @@ void MouseItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
 }
 
 /**
- * @brief Draw the velocity vector as an arrow from the mouse centre.
+ * @brief Draw the velocity vectors as arrows from the mouse centre.
  *
- * Length is m_speed * velocityScale. In item coordinates the heading is -y;
- * the arrow is rotated from there by m_direction.
+ * Two arrows of length m_speed * velocityScale: a faint one along the heading
+ * (the velocity there would be without slip), then the actual velocity,
+ * rotated from the heading by m_direction. Without slip they coincide.
  *
  * @param painter painter in item coordinates
  */
@@ -80,12 +81,26 @@ void MouseItem::drawVelocity(QPainter *painter) const {
     if (length < 1) {
         return;
     }
-    QPen pen(QColor(255, 140, 0));
+    drawArrow(painter, length, 0, QColor(255, 255, 255, 140));
+    drawArrow(painter, length, m_direction, QColor(255, 140, 0));
+}
+
+/**
+ * @brief Draw an arrow from the mouse centre.
+ *
+ * @param painter painter in item coordinates
+ * @param length arrow length in mm
+ * @param angle direction relative to the heading (-y in item coordinates),
+ *        degrees, positive clockwise on screen
+ * @param colour line colour
+ */
+void MouseItem::drawArrow(QPainter *painter, qreal length, qreal angle, const QColor &colour) const {
+    QPen pen(colour);
     pen.setWidthF(2);
     pen.setCapStyle(Qt::RoundCap);
     painter->save();
     painter->setPen(pen);
-    painter->rotate(m_direction);
+    painter->rotate(angle);
     QPointF tip(0, -length);
     painter->drawLine(QPointF(0, 0), tip);
     painter->drawLine(tip, tip + QPointF(-5, 10));
