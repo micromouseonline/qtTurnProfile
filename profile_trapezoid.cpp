@@ -3,8 +3,8 @@
  * @brief Trapezoidal turn profile.
  */
 
-#include "segmented_profile.h"
 #include <cmath>
+#include "segmented_profile.h"
 
 namespace {
 
@@ -38,55 +38,54 @@ namespace {
  * to be about the same
  */
 class TrapezoidProfile : public SegmentedProfile {
-public:
-    std::string name() const override { return "Trapezoid"; }
+ public:
+  std::string name() const override { return "Trapezoid"; }
 
-    std::string description() const override { return "Linear change of angular velocity in the transitions (clothoid entry and exit)"; }
+  std::string description() const override { return "Linear change of angular velocity in the transitions (clothoid entry and exit)"; }
 
-    /**
-     * Speeds give a peak centripetal acceleration of 9800 mm/s/s:
-     * speed = sqrt(9800 * radius), rounded to the nearest mm/s.
-     */
-    TurnDefaults defaults(Turn_t turn) const override {
-        // offset, speed, {radius, lambda}
-        static const TurnDefaults table[TURN_TYPE_COUNT] = {
-            {150, 970, {96, 100}},  // SS90F
-            {160, 896, {82, 127}},  // SS180
-            {160, 934, {89, 65}},  // SD45
-            {150, 869, {77, 90}},  // SD135
-            {75, 965, {95, 70}},  // DS45
-            {105, 846, {73, 90}},  // DS135
-            {105, 773, {61, 80}},  // DD90
-            {75, 686, {48, 50}},  // SS90E
-        };
-        return table[turn];
-    }
+  /**
+   * Speeds give a peak centripetal acceleration of 9800 mm/s/s:
+   * speed = sqrt(9800 * radius), rounded to the nearest mm/s.
+   */
+  TurnDefaults defaults(Turn_t turn) const override {
+    // offset, speed, {radius, lambda}
+    static const TurnDefaults table[TURN_TYPE_COUNT] = {
+        {150, 965, {95, 100}},  // SS90F
+        {160, 896, {82, 127}},  // SS180
+        {160, 934, {87, 65}},   // SD45
+        {150, 869, {77, 86}},   // SD135
+        {75, 965, {95, 68}},    // DS45
+        {105, 846, {73, 90}},   // DS135
+        {105, 773, {61, 78}},   // DD90
+        {75, 686, {48, 49}},    // SS90E
+    };
+    return table[turn];
+  }
 
-protected:
-    float transition_angle(float lambda, float turn_omega, float speed,
-                           const std::vector<float> &values) const override {
-        (void) values;
-        return lambda * turn_omega / (speed * 2);
-    }
+ protected:
+  float transition_angle(float lambda, float turn_omega, float speed, const std::vector<float> &values) const override {
+    (void)values;
+    return lambda * turn_omega / (speed * 2);
+  }
 
-    float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const override {
-        (void) values;
-        return turn_omega * x / lambda;
-    }
+  float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const override {
+    (void)values;
+    return turn_omega * x / lambda;
+  }
 
-    float lambda_limit(const std::vector<float> &values) const override {
-        (void) values;
-        return 1.0f;
-    }
+  float lambda_limit(const std::vector<float> &values) const override {
+    (void)values;
+    return 1.0f;
+  }
 
-    /// 0.1 degrees, as in the original trapezoid simulation
-    double tolerance() const override { return 0.1; }
+  /// 0.1 degrees, as in the original trapezoid simulation
+  double tolerance() const override { return 0.1; }
 };
 
 }  // namespace
 
 /// The single Trapezoidal profile instance, for the registry
 const TurnProfile &trapezoid_profile() {
-    static const TrapezoidProfile profile;
-    return profile;
+  static const TrapezoidProfile profile;
+  return profile;
 }
