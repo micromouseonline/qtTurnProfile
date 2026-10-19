@@ -15,7 +15,7 @@ constexpr double PI = 3.14159265359;
  * @return angle in radians (double)
  */
 constexpr double radians(double deg) {
-    return deg * PI / 180.0;
+  return deg * PI / 180.0;
 }
 
 /**
@@ -24,7 +24,7 @@ constexpr double radians(double deg) {
  * @return angle in degrees (double)
  */
 constexpr double degrees(double rad) {
-    return rad * 180.0 / PI;
+  return rad * 180.0 / PI;
 }
 
 #endif  // ANGLES_H

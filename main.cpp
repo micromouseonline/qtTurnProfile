@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   a.setWindowIcon(QIcon(":/images/qtTurnProfiler.png"));
   QApplication::setQuitOnLastWindowClosed(true);
   MainWindow w;
-  // find the screen that holds the current mouse pointer  
+  // find the screen that holds the current mouse pointer
   QScreen *screen = a.screenAt(QCursor::pos());
   // and its geometry
   QRect screenRect = screen->availableGeometry();

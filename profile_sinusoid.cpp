@@ -4,6 +4,8 @@
  */
 
 #include <cmath>
+#include "robot/hybrid_turn_profile.h"
+#include "robot_sim.h"
 #include "segmented_profile.h"
 
 namespace {
@@ -65,6 +67,17 @@ class SinusoidProfile : public SegmentedProfile {
         {75, 741, {56, 47}},     // SS90E
     };
     return table[turn];
+  }
+
+  /**
+   * Runs the robot's HybridTurnProfile (robot/hybrid_turn_profile.h) with
+   * blend 0, which is this profile exactly: phases on distance along the
+   * path, not on heading, one tick per interval at constant speed.
+   */
+  void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values, Track &track) const override {
+    HybridTurnProfile profile(setup.interval);
+    ProfileStatus status = profile.init_turn(setup.turn_angle, values[RADIUS], values[LAMBDA], 0.0f);
+    simulate_robot_turn(profile, status == ProfileStatus::SUCCESS, [&] { return profile.phase(); }, setup, speed, track);
   }
 
  protected:

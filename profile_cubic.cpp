@@ -4,6 +4,8 @@
  */
 
 #include <cmath>
+#include "robot/cubic_profile.h"
+#include "robot_sim.h"
 #include "turn_profile.h"
 
 namespace {
@@ -40,7 +42,7 @@ namespace {
  *
  * Speed is constant throughout the turn.
  ***/
-class CubicProfile : public TurnProfile {
+class CubicSpiralProfile : public TurnProfile {
  public:
   enum { LENGTH = 0 };
 
@@ -73,37 +75,16 @@ class CubicProfile : public TurnProfile {
     return table[turn];
   }
 
+  /**
+   * Runs the robot's CubicProfile (robot/cubic_profile.h) in firmware mode,
+   * one tick per interval at constant speed. Phase 1 is the first half of the
+   * length, phase 3 the second.
+   */
   void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values, Track &track) const override {
-    float turnSpeed = speed;
-    float turnAngle = setup.turn_angle;
-    float startAngle = setup.start_angle;
-
     float length = values[LENGTH];
-    // k is the constant used to obtain the curvature of the path
-    float k = 6.0f * (turnAngle) / (length * length * length);
-
-    track.clear();
-    RobotState robot_state(setup.start_x, setup.start_y, startAngle, turnSpeed, setup.interval);
-    robot_state.set_slip(setup.slip);
-    track.add_record(robot_state);
-    // perform the turn;
-    // unlike the other turn types, the cubic spiral is based on distance
-    // rather than the turn angle.
-    // TODO: is this a problem if there is wheel slip?
-    while (robot_state.distance < length) {
-      float frac = robot_state.distance / length;
-      float omega = robot_state.speed * k * robot_state.distance * (length - robot_state.distance);
-      robot_state.omega = omega;
-      if (frac < 0.5) {
-        robot_state.phase = 1;
-      } else {
-        robot_state.phase = 3;
-      }
-      robot_state.update();
-      track.add_record(robot_state);
-    }
-    track.set_turn_end();
-    simulate_leadout(robot_state, setup.leadout, track);
+    CubicProfile profile(setup.interval);
+    profile.init(length, 0, 0, 0, 0, setup.turn_angle);
+    simulate_robot_turn(profile, true, [&] { return profile.getPosition() < length / 2 ? 1 : 3; }, setup, speed, track);
   }
 
   /// Curvature is (6 * angle / L) * f(1 - f), f = s / L, largest at mid turn: a = v^2 * 1.5 * angle / L
@@ -122,6 +103,6 @@ class CubicProfile : public TurnProfile {
 
 /// The single cubic spiral profile instance, for the registry
 const TurnProfile &cubic_profile() {
-  static const CubicProfile profile;
+  static const CubicSpiralProfile profile;
   return profile;
 }

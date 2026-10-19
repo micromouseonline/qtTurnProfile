@@ -32,6 +32,12 @@ set(PHYSICS_SOURCES
         profile_trapezoid.cpp
         profile_cubic.cpp
         profile_hybrid.cpp
+        robot_sim.h
+        robot_sim.cpp
+        robot/velocity_profile.h
+        robot/robot_compat.h
+        robot/cubic_profile.h
+        robot/hybrid_turn_profile.h
         )
 
 set(SOURCE_FILES

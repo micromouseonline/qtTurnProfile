@@ -6,40 +6,39 @@
 #include "pose.h"
 
 class MouseItem : public QGraphicsItem {
-public:
-    MouseItem();
+ public:
+  MouseItem();
 
-    QRectF boundingRect() const override;  // the scene needs to know this
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+  QRectF boundingRect() const override;  // the scene needs to know this
+  void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
-    void setPose(Pose pose);
+  void setPose(Pose pose);
 
-    void setSensorAngle(qreal angle);
+  void setSensorAngle(qreal angle);
 
-    void setVelocity(qreal speed, qreal direction = 0);
+  void setVelocity(qreal speed, qreal direction = 0);
 
-    qreal m_width = 80;  // the overall_width of the mouse
-    qreal m_radius = 37;  // the distance between the mouse CG and the wheel
-    qreal m_side_sensor_angle = 35;
-    qreal m_front_sensor_angle = 80;
+  qreal m_width = 80;   // the overall_width of the mouse
+  qreal m_radius = 37;  // the distance between the mouse CG and the wheel
+  qreal m_side_sensor_angle = 35;
+  qreal m_front_sensor_angle = 80;
 
-    /// length of the sensor rays in mm
-    static constexpr qreal sensorLength = 160;
+  /// length of the sensor rays in mm
+  static constexpr qreal sensorLength = 160;
 
-    /// velocity arrow length per unit speed: 1000 mm/s is drawn as 100 mm
-    static constexpr qreal velocityScale = 0.1;
+  /// velocity arrow length per unit speed: 1000 mm/s is drawn as 100 mm
+  static constexpr qreal velocityScale = 0.1;
 
-private:
-    Pose m_pose{};
-    qreal m_speed = 0;      ///< speed in mm/s
-    qreal m_direction = 0;  ///< velocity direction relative to heading, degrees
+ private:
+  Pose m_pose{};
+  qreal m_speed = 0;      ///< speed in mm/s
+  qreal m_direction = 0;  ///< velocity direction relative to heading, degrees
 
-    void drawVelocity(QPainter *painter) const;
+  void drawVelocity(QPainter *painter) const;
 
-    void drawArrow(QPainter *painter, qreal length, qreal angle, const QColor &colour) const;
+  void drawArrow(QPainter *painter, qreal length, qreal angle, const QColor &colour) const;
 
-    void
-    drawSensor(QPainter *painter, const QPoint &sensorOrigin, qreal sensorAngle) const;
+  void drawSensor(QPainter *painter, const QPoint &sensorOrigin, qreal sensorAngle) const;
 };
 
 #endif  // GRAPHICMOUSE_H

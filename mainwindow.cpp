@@ -8,116 +8,116 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QTextEdit>
-#include <cmath>
 #include <algorithm>
-#include "main_window_ui.h"
+#include <cmath>
 #include "angles.h"
-#include "track.h"
+#include "main_window_ui.h"
 #include "robotstate.h"
+#include "track.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindowUi) {
-    ui->setupUi(this);
-    connect(ui->btnAutoScale, &QPushButton::toggled, this, &MainWindow::drawProfileGraph);
-    connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::resetTurn);
-    connect(ui->startXSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
-    connect(ui->startYSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
-    connect(ui->progressSlider, &QSlider::valueChanged, this, &MainWindow::sliderMoved);
-    connect(ui->accelerationSpinBox, &QSpinBox::valueChanged, this, &MainWindow::accelerationChanged);
-    connect(ui->turnSpeedSpinBox, &QSpinBox::valueChanged, this, &MainWindow::speedChanged);
-    connect(ui->offsetSpinBox, &QSpinBox::valueChanged, this, &MainWindow::offsetChanged);
-    connect(ui->sensorAngleSpinBox, &QSpinBox::valueChanged, this, &MainWindow::sensorAngleChanged);
-    connect(ui->slipGradientSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
-    connect(ui->loadFactorSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
+  ui->setupUi(this);
+  connect(ui->btnAutoScale, &QPushButton::toggled, this, &MainWindow::drawProfileGraph);
+  connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::resetTurn);
+  connect(ui->startXSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
+  connect(ui->startYSpinBox, &QSpinBox::valueChanged, this, &MainWindow::rePaint);
+  connect(ui->progressSlider, &QSlider::valueChanged, this, &MainWindow::sliderMoved);
+  connect(ui->accelerationSpinBox, &QSpinBox::valueChanged, this, &MainWindow::accelerationChanged);
+  connect(ui->turnSpeedSpinBox, &QSpinBox::valueChanged, this, &MainWindow::speedChanged);
+  connect(ui->offsetSpinBox, &QSpinBox::valueChanged, this, &MainWindow::offsetChanged);
+  connect(ui->sensorAngleSpinBox, &QSpinBox::valueChanged, this, &MainWindow::sensorAngleChanged);
+  connect(ui->slipGradientSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
+  connect(ui->loadFactorSpinBox, &QDoubleSpinBox::valueChanged, this, &MainWindow::rePaint);
 
-    // slip plot above the speed plot, a quarter of the height. The margin group
-    // gives both the same left and right margins, so their time axes line up.
-    QCPAxisRect *mainRect = ui->customPlot->axisRect();
-    auto *slipRect = new QCPAxisRect(ui->customPlot);
-    ui->customPlot->plotLayout()->insertRow(0);
-    ui->customPlot->plotLayout()->addElement(0, 0, slipRect);
-    ui->customPlot->plotLayout()->setRowStretchFactors({1, 3});
-    auto *margins = new QCPMarginGroup(ui->customPlot);
-    mainRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
-    slipRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
-    slipAxis = slipRect->axis(QCPAxis::atLeft);
-    slipAxis->setLabel("Slip (deg)");
-    slipAxis->setLabelColor(Qt::red);
-    slipAxis->ticker()->setTickCount(3);  // short axis: 0, 10, 20, 30
-    slipTime = slipRect->axis(QCPAxis::atBottom);
-    slipTime->setTickLabels(false);  // same scale as the time axis below
+  // slip plot above the speed plot, a quarter of the height. The margin group
+  // gives both the same left and right margins, so their time axes line up.
+  QCPAxisRect *mainRect = ui->customPlot->axisRect();
+  auto *slipRect = new QCPAxisRect(ui->customPlot);
+  ui->customPlot->plotLayout()->insertRow(0);
+  ui->customPlot->plotLayout()->addElement(0, 0, slipRect);
+  ui->customPlot->plotLayout()->setRowStretchFactors({1, 3});
+  auto *margins = new QCPMarginGroup(ui->customPlot);
+  mainRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
+  slipRect->setMarginGroup(QCP::msLeft | QCP::msRight, margins);
+  slipAxis = slipRect->axis(QCPAxis::atLeft);
+  slipAxis->setLabel("Slip (deg)");
+  slipAxis->setLabelColor(Qt::red);
+  slipAxis->ticker()->setTickCount(3);  // short axis: 0, 10, 20, 30
+  slipTime = slipRect->axis(QCPAxis::atBottom);
+  slipTime->setTickLabels(false);  // same scale as the time axis below
 
-    buildRowLabels();
+  buildRowLabels();
 
-    loadDefaults();
+  loadDefaults();
 
-    theMouse = new MouseItem;
-    theMouse->setSensorAngle(ui->sensorAngleSpinBox->value());
-    mouseScene = new QGraphicsScene(this);  // deleted with the window; owns its items
-    mouseScene->setSceneRect(-100, -100, 380, 380);
-    mouseScene->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
-    drawMazeWalls();
-    mouseScene->addItem(theMouse);
-    ui->pathView->setScene(mouseScene);
-    ui->pathView->setRenderHint(QPainter::Antialiasing);
-    buildProfileButtons();
+  theMouse = new MouseItem;
+  theMouse->setSensorAngle(ui->sensorAngleSpinBox->value());
+  mouseScene = new QGraphicsScene(this);  // deleted with the window; owns its items
+  mouseScene->setSceneRect(-100, -100, 380, 380);
+  mouseScene->setBackgroundBrush(QBrush(Qt::black, Qt::SolidPattern));
+  drawMazeWalls();
+  mouseScene->addItem(theMouse);
+  ui->pathView->setScene(mouseScene);
+  ui->pathView->setRenderHint(QPainter::Antialiasing);
+  buildProfileButtons();
 
-    // button ids are the Turn_t values
+  // button ids are the Turn_t values
 
-    turnGroup = new QButtonGroup(this);
-    for (int t = 0; t < TURN_TYPE_COUNT; t++) {
-        turnGroup->addButton(ui->turnButtons[t], t);
-    }
-    connect(turnGroup, &QButtonGroup::idClicked, this, &MainWindow::selectTurn);
+  turnGroup = new QButtonGroup(this);
+  for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+    turnGroup->addButton(ui->turnButtons[t], t);
+  }
+  connect(turnGroup, &QButtonGroup::idClicked, this, &MainWindow::selectTurn);
 
-    profileGroup->button(0)->click();
-    ui->turnButtons[TURN_SS90F]->click();
-    setWindowTitle(tr("Turn Render"));
+  profileGroup->button(0)->click();
+  ui->turnButtons[TURN_SS90F]->click();
+  setWindowTitle(tr("Turn Render"));
 }
 
 MainWindow::~MainWindow() {
-    delete ui;
+  delete ui;
 }
 
 void MainWindow::showTurnSummary() const {
-    float max_alpha = track.get_max_alpha() / loopInterval;
-    qreal wheelAcceleration = theMouse->m_radius * radians(max_alpha);
-    Pose exit_pose = track.get_exit_pose();
+  float max_alpha = track.get_max_alpha() / loopInterval;
+  qreal wheelAcceleration = theMouse->m_radius * radians(max_alpha);
+  Pose exit_pose = track.get_exit_pose();
 
-    ui->textEdit->clear();
-    ui->textEdit->append("Turn Parameters");
-    // equals the arc radius for segmented profiles; the tightest point for others
-    float speed = ui->turnSpeedSpinBox->value();
-    float minRadius = speed * speed / peakAcceleration(speed);
-    ui->textEdit->append("   Min Radius: " + QString::number(minRadius, 'f', 0).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("   Turn Speed: " + QString::number(ui->turnSpeedSpinBox->value(), 'f', 0).rightJustified(6, ' ') + " mm/s");
-    ui->textEdit->append("Cent'l Acceln: " + QString::number(track.get_max_acceleration(), 'f', 0).rightJustified(6, ' ') + " mm/s/s");
-    ui->textEdit->append(" Wheel Acceln: " + QString::number(wheelAcceleration, 'f', 0).rightJustified(6, ' ') + " mm/s/s");
-    ui->textEdit->append("        Alpha: " + QString::number(max_alpha, 'f', 0).rightJustified(6, ' ') + " deg/s/s");
-    ui->textEdit->append("    Omega Max: " + QString::number(track.get_max_omega(), 'f', 0).rightJustified(6, ' ') + " deg/s");
-    ui->textEdit->append("       Exit X: " + QString::number(exit_pose.x(), 'f', 1).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("       Exit Y: " + QString::number(exit_pose.y(), 'f', 1).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("        Theta: " + QString::number(exit_pose.theta(), 'f', 1).rightJustified(6, ' ') + " deg");
-    ui->textEdit->append("     Distance: " + QString::number(track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("         Time: " + QString::number(track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
-    ui->textEdit->append("   Exit Speed: " + QString::number(track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
-    // slip moves only the position, and carries on into the leadout: the error is the
-    // offset from the no slip path at the end of the leadout, where slip has died away
-    Pose end_pose = track.empty() ? Pose() : track.get_pose_at(track.record_count() - 1);
-    Pose ideal_end = idealTrack.empty() ? Pose() : idealTrack.get_pose_at(idealTrack.record_count() - 1);
-    ui->textEdit->append("     Max Slip: " + QString::number(track.get_max_slip(), 'f', 1).rightJustified(6, ' ') + " deg");
-    ui->textEdit->append("       End dX: " + QString::number(end_pose.x() - ideal_end.x(), 'f', 1).rightJustified(6, ' ') + " mm");
-    ui->textEdit->append("       End dY: " + QString::number(end_pose.y() - ideal_end.y(), 'f', 1).rightJustified(6, ' ') + " mm");
-    // slip left when omega reaches zero; it then decays with time constant tau (see SlipParams)
-    float exit_slip = track.empty() ? 0 : track.get_slip_at(track.finish_index());
-    ui->textEdit->append("    Exit Slip: " + QString::number(exit_slip, 'f', 1).rightJustified(6, ' ') + " deg");
-    std::vector<SummaryLine> lines = profile().summary(turnSetup(), params().values);
-    for (size_t i = 0; i < std::max(lines.size(), summaryRowLabels.size()); i++) {
-        // lines this profile does not have are shown as "-" so the summary keeps its length
-        const SummaryLine &line = i < lines.size() ? lines[i] : summaryRowLabels[i];
-        QString value = i < lines.size() ? QString::number(line.value, 'f', line.decimals) : QString("-");
-        ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " +
-                             value.rightJustified(6, ' ') + " " + QString::fromStdString(line.units));
-    }
+  ui->textEdit->clear();
+  ui->textEdit->append("Turn Parameters");
+  // equals the arc radius for segmented profiles; the tightest point for others
+  float speed = ui->turnSpeedSpinBox->value();
+  float minRadius = speed * speed / peakAcceleration(speed);
+  ui->textEdit->append("   Min Radius: " + QString::number(minRadius, 'f', 0).rightJustified(6, ' ') + " mm");
+  ui->textEdit->append("   Turn Speed: " + QString::number(ui->turnSpeedSpinBox->value(), 'f', 0).rightJustified(6, ' ') + " mm/s");
+  ui->textEdit->append("Cent'l Acceln: " + QString::number(track.get_max_acceleration(), 'f', 0).rightJustified(6, ' ') + " mm/s/s");
+  ui->textEdit->append(" Wheel Acceln: " + QString::number(wheelAcceleration, 'f', 0).rightJustified(6, ' ') + " mm/s/s");
+  ui->textEdit->append("        Alpha: " + QString::number(max_alpha, 'f', 0).rightJustified(6, ' ') + " deg/s/s");
+  ui->textEdit->append("    Omega Max: " + QString::number(track.get_max_omega(), 'f', 0).rightJustified(6, ' ') + " deg/s");
+  ui->textEdit->append("       Exit X: " + QString::number(exit_pose.x(), 'f', 1).rightJustified(6, ' ') + " mm");
+  ui->textEdit->append("       Exit Y: " + QString::number(exit_pose.y(), 'f', 1).rightJustified(6, ' ') + " mm");
+  ui->textEdit->append("        Theta: " + QString::number(exit_pose.theta(), 'f', 1).rightJustified(6, ' ') + " deg");
+  ui->textEdit->append("     Distance: " + QString::number(track.turn_length(), 'f', 0).rightJustified(6, ' ') + " mm");
+  ui->textEdit->append("         Time: " + QString::number(track.get_turn_time(), 'f', 3).rightJustified(6, ' ') + " s");
+  ui->textEdit->append("   Exit Speed: " + QString::number(track.get_exit_speed(), 'f', 0).rightJustified(6, ' ') + " mm/s");
+  // slip moves only the position, and carries on into the leadout: the error is the
+  // offset from the no slip path at the end of the leadout, where slip has died away
+  Pose end_pose = track.empty() ? Pose() : track.get_pose_at(track.record_count() - 1);
+  Pose ideal_end = idealTrack.empty() ? Pose() : idealTrack.get_pose_at(idealTrack.record_count() - 1);
+  ui->textEdit->append("     Max Slip: " + QString::number(track.get_max_slip(), 'f', 1).rightJustified(6, ' ') + " deg");
+  ui->textEdit->append("       End dX: " + QString::number(end_pose.x() - ideal_end.x(), 'f', 1).rightJustified(6, ' ') + " mm");
+  ui->textEdit->append("       End dY: " + QString::number(end_pose.y() - ideal_end.y(), 'f', 1).rightJustified(6, ' ') + " mm");
+  // slip left when omega reaches zero; it then decays with time constant tau (see SlipParams)
+  float exit_slip = track.empty() ? 0 : track.get_slip_at(track.finish_index());
+  ui->textEdit->append("    Exit Slip: " + QString::number(exit_slip, 'f', 1).rightJustified(6, ' ') + " deg");
+  std::vector<SummaryLine> lines = profile().summary(turnSetup(), params().values);
+  for (size_t i = 0; i < std::max(lines.size(), summaryRowLabels.size()); i++) {
+    // lines this profile does not have are shown as "-" so the summary keeps its length
+    const SummaryLine &line = i < lines.size() ? lines[i] : summaryRowLabels[i];
+    QString value = i < lines.size() ? QString::number(line.value, 'f', line.decimals) : QString("-");
+    ui->textEdit->append(QString::fromStdString(line.label + ":").rightJustified(14, ' ') + " " + value.rightJustified(6, ' ') + " " +
+                         QString::fromStdString(line.units));
+  }
 }
 
 /**
@@ -129,23 +129,23 @@ void MainWindow::showTurnSummary() const {
  * changes.
  */
 void MainWindow::rePaint() {
-    constrainParams();
-    TurnSetup setup = turnSetup();
-    profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, track);
-    if (slipEnabled()) {
-        setup.slip = SlipParams();
-        profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, idealTrack);
-    } else {
-        idealTrack = track;
-    }
-    showTurnSummary();
-    ui->progressSlider->blockSignals(true);  // showProgress() runs below
-    ui->progressSlider->setRange(0, track.finish_index());
-    ui->progressSlider->setValue(qRound(progressFraction * track.finish_index()));
-    ui->progressSlider->blockSignals(false);
-    drawBreadcrumbs();
-    drawProfileGraph();
-    showProgress();
+  constrainParams();
+  TurnSetup setup = turnSetup();
+  profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, track);
+  if (slipEnabled()) {
+    setup.slip = SlipParams();
+    profile().simulate(setup, ui->turnSpeedSpinBox->value(), params().values, idealTrack);
+  } else {
+    idealTrack = track;
+  }
+  showTurnSummary();
+  ui->progressSlider->blockSignals(true);  // showProgress() runs below
+  ui->progressSlider->setRange(0, track.finish_index());
+  ui->progressSlider->setValue(qRound(progressFraction * track.finish_index()));
+  ui->progressSlider->blockSignals(false);
+  drawBreadcrumbs();
+  drawProfileGraph();
+  showProgress();
 }
 
 /**
@@ -153,9 +153,9 @@ void MainWindow::rePaint() {
  * @param value slider position, a track record index
  */
 void MainWindow::sliderMoved(int value) {
-    int max = ui->progressSlider->maximum();
-    progressFraction = max > 0 ? double(value) / max : 0;
-    showProgress();
+  int max = ui->progressSlider->maximum();
+  progressFraction = max > 0 ? double(value) / max : 0;
+  showProgress();
 }
 
 /**
@@ -165,20 +165,18 @@ void MainWindow::sliderMoved(int value) {
  * slider movement. rePaint() calls it after recalculating.
  */
 void MainWindow::showProgress() {
-    int progress = ui->progressSlider->value();
-    Pose pose = track.get_pose_at(progress);
-    theMouse->setPose(pose);
-    // arrow along the velocity: slip turns it anticlockwise from the heading
-    theMouse->setVelocity(track.get_speed_at(progress), -track.get_slip_at(progress));
-    // position, distance, heading, omega, slip; units identify all but slip.
-    // Slip is always shown so the label width, and with it the layout, does not change
-    ui->lblPathView->setText(
-            "(" + QString::number(pose.x(), 'f', 0).rightJustified(3, ' ') +
-            "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') + ")  " +
-            QString::number(track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + " mm  " +
-            QString::number(pose.theta(), 'f', 0).rightJustified(3, ' ') + " deg  " +
-            QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s  " +
-            "slip: " + QString::number(track.get_slip_at(progress), 'f', 1).rightJustified(4, ' ') + " deg");
+  int progress = ui->progressSlider->value();
+  Pose pose = track.get_pose_at(progress);
+  theMouse->setPose(pose);
+  // arrow along the velocity: slip turns it anticlockwise from the heading
+  theMouse->setVelocity(track.get_speed_at(progress), -track.get_slip_at(progress));
+  // position, distance, heading, omega, slip; units identify all but slip.
+  // Slip is always shown so the label width, and with it the layout, does not change
+  ui->lblPathView->setText("(" + QString::number(pose.x(), 'f', 0).rightJustified(3, ' ') + "," + QString::number(pose.y(), 'f', 0).rightJustified(3, ' ') +
+                           ")  " + QString::number(track.get_distance_at(progress), 'f', 0).rightJustified(3, ' ') + " mm  " +
+                           QString::number(pose.theta(), 'f', 0).rightJustified(3, ' ') + " deg  " +
+                           QString::number(track.get_omega_at(progress), 'f', 0).rightJustified(4, ' ') + " deg/s  " +
+                           "slip: " + QString::number(track.get_slip_at(progress), 'f', 1).rightJustified(4, ' ') + " deg");
 }
 
 namespace {
@@ -189,11 +187,11 @@ namespace {
  * @return smallest multiple of 10^floor(log10(value)) / 2 that is >= value
  */
 double niceCeil(double value) {
-    if (value <= 0) {
-        return 1;
-    }
-    double step = std::pow(10.0, std::floor(std::log10(value))) / 2;
-    return std::ceil(value / step) * step;
+  if (value <= 0) {
+    return 1;
+  }
+  double step = std::pow(10.0, std::floor(std::log10(value))) / 2;
+  return std::ceil(value / step) * step;
 }
 
 }  // namespace
@@ -209,79 +207,79 @@ double niceCeil(double value) {
  * fitted to the data instead (from zero, with a little headroom).
  */
 void MainWindow::drawProfileGraph() const {
-    // create graph and assign data to it:
-    ui->customPlot->clearGraphs();
-    ui->customPlot->addGraph();
-    QVector<qreal> xaxis;
-    QVector<qreal> yaxis_omega;
-    QVector<qreal> yaxis_speed;
-    QVector<qreal> yaxis_left_wheel;
-    QVector<qreal> yaxis_right_wheel;
-    QVector<qreal> yaxis_slip;
-    double maxOmega = 0;
-    double maxSpeed = 0;
-    for (int i = 1; i < track.record_count(); i++) {
-        xaxis.push_back(track.get_time_at(i));
-        float omega = track.get_omega_at(i);
-        float speed = track.get_speed_at(i);
-        yaxis_omega.push_back(omega);
-        yaxis_speed.push_back(speed);
-        yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
-        yaxis_right_wheel.push_back(speed - theMouse->m_radius * radians(omega));
-        yaxis_slip.push_back(track.get_slip_at(i));
-        maxOmega = std::max(maxOmega, double(omega));
-        maxSpeed = std::max({maxSpeed, double(speed), yaxis_left_wheel.back(), yaxis_right_wheel.back()});
-    }
-    double maxTime = xaxis.isEmpty() ? 0 : xaxis.back();
+  // create graph and assign data to it:
+  ui->customPlot->clearGraphs();
+  ui->customPlot->addGraph();
+  QVector<qreal> xaxis;
+  QVector<qreal> yaxis_omega;
+  QVector<qreal> yaxis_speed;
+  QVector<qreal> yaxis_left_wheel;
+  QVector<qreal> yaxis_right_wheel;
+  QVector<qreal> yaxis_slip;
+  double maxOmega = 0;
+  double maxSpeed = 0;
+  for (int i = 1; i < track.record_count(); i++) {
+    xaxis.push_back(track.get_time_at(i));
+    float omega = track.get_omega_at(i);
+    float speed = track.get_speed_at(i);
+    yaxis_omega.push_back(omega);
+    yaxis_speed.push_back(speed);
+    yaxis_left_wheel.push_back(speed + theMouse->m_radius * radians(omega));
+    yaxis_right_wheel.push_back(speed - theMouse->m_radius * radians(omega));
+    yaxis_slip.push_back(track.get_slip_at(i));
+    maxOmega = std::max(maxOmega, double(omega));
+    maxSpeed = std::max({maxSpeed, double(speed), yaxis_left_wheel.back(), yaxis_right_wheel.back()});
+  }
+  double maxTime = xaxis.isEmpty() ? 0 : xaxis.back();
 
-    ui->customPlot->graph(0)->setData(xaxis, yaxis_omega);
-    ui->customPlot->graph(0)->setPen(QPen(Qt::blue));
+  ui->customPlot->graph(0)->setData(xaxis, yaxis_omega);
+  ui->customPlot->graph(0)->setPen(QPen(Qt::blue));
 
-    ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
-    ui->customPlot->graph(1)->setData(xaxis, yaxis_speed);
+  ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
+  ui->customPlot->graph(1)->setData(xaxis, yaxis_speed);
 
-    ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
-    ui->customPlot->graph(2)->setData(xaxis, yaxis_left_wheel);
-    ui->customPlot->graph(2)->setPen(QPen(Qt::darkCyan));
+  ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
+  ui->customPlot->graph(2)->setData(xaxis, yaxis_left_wheel);
+  ui->customPlot->graph(2)->setPen(QPen(Qt::darkCyan));
 
-    ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
-    ui->customPlot->graph(3)->setData(xaxis, yaxis_right_wheel);
-    ui->customPlot->graph(3)->setPen(QPen(Qt::darkCyan));
+  ui->customPlot->addGraph(ui->customPlot->xAxis, ui->customPlot->yAxis2);
+  ui->customPlot->graph(3)->setData(xaxis, yaxis_right_wheel);
+  ui->customPlot->graph(3)->setPen(QPen(Qt::darkCyan));
 
-    QPen speedPen;
-    speedPen.setColor(Qt::darkMagenta);
-    speedPen.setStyle(Qt::DotLine);
-    speedPen.setWidthF(2);
-    ui->customPlot->graph(1)->setPen(speedPen);
+  QPen speedPen;
+  speedPen.setColor(Qt::darkMagenta);
+  speedPen.setStyle(Qt::DotLine);
+  speedPen.setWidthF(2);
+  ui->customPlot->graph(1)->setPen(speedPen);
 
-    double maxSlip = track.get_max_slip();
-    ui->customPlot->addGraph(slipTime, slipAxis);
-    ui->customPlot->graph(4)->setData(xaxis, yaxis_slip);
-    ui->customPlot->graph(4)->setPen(QPen(Qt::red));
-    // give the axes some labels:
-    ui->customPlot->xAxis->setLabel("Time (s)");
-    ui->customPlot->yAxis->setLabel("Angular Velocity (deg/s)");
-    ui->customPlot->yAxis->setLabelColor(Qt::blue);
-    // set axes ranges, so we see all data:
-    if (ui->btnAutoScale->isChecked()) {
-        const double headroom = 1.05;
-        ui->customPlot->xAxis->setRange(0, maxTime > 0 ? maxTime * headroom : 0.5);
-        ui->customPlot->yAxis->setRange(0, maxOmega > 0 ? maxOmega * headroom : 1600);
-        ui->customPlot->yAxis2->setRange(0, maxSpeed > 0 ? maxSpeed * headroom : 3200);
-        slipAxis->setRange(0, maxSlip > 0 ? maxSlip * headroom : 30);
-    } else {
-        ui->customPlot->xAxis->setRange(0, maxTime > 0.5 ? niceCeil(maxTime) : 0.5);
-        ui->customPlot->yAxis->setRange(0, maxOmega > 1600 ? niceCeil(maxOmega) : 1600);
-        ui->customPlot->yAxis2->setRange(0, maxSpeed > 3200 ? niceCeil(maxSpeed) : 3200);
-        slipAxis->setRange(0, maxSlip > 30 ? niceCeil(maxSlip) : 30);
-    }
-    slipTime->setRange(ui->customPlot->xAxis->range());
-    ui->customPlot->yAxis->setVisible(true);
-    ui->customPlot->yAxis2->setVisible(true);
+  double maxSlip = track.get_max_slip();
+  ui->customPlot->addGraph(slipTime, slipAxis);
+  ui->customPlot->graph(4)->setData(xaxis, yaxis_slip);
+  ui->customPlot->graph(4)->setPen(QPen(Qt::red));
+  // give the axes some labels:
+  ui->customPlot->xAxis->setLabel("Time (s)");
+  ui->customPlot->yAxis->setLabel("Angular Velocity (deg/s)");
+  ui->customPlot->yAxis->setLabelColor(Qt::blue);
+  // set axes ranges, so we see all data:
+  if (ui->btnAutoScale->isChecked()) {
+    const double headroom = 1.05;
+    ui->customPlot->xAxis->setRange(0, maxTime > 0 ? maxTime * headroom : 0.5);
+    ui->customPlot->yAxis->setRange(0, maxOmega > 0 ? maxOmega * headroom : 1600);
+    ui->customPlot->yAxis2->setRange(0, maxSpeed > 0 ? maxSpeed * headroom : 3200);
+    slipAxis->setRange(0, maxSlip > 0 ? maxSlip * headroom : 30);
+  } else {
+    ui->customPlot->xAxis->setRange(0, maxTime > 0.5 ? niceCeil(maxTime) : 0.5);
+    ui->customPlot->yAxis->setRange(0, maxOmega > 1600 ? niceCeil(maxOmega) : 1600);
+    ui->customPlot->yAxis2->setRange(0, maxSpeed > 3200 ? niceCeil(maxSpeed) : 3200);
+    slipAxis->setRange(0, maxSlip > 30 ? niceCeil(maxSlip) : 30);
+  }
+  slipTime->setRange(ui->customPlot->xAxis->range());
+  ui->customPlot->yAxis->setVisible(true);
+  ui->customPlot->yAxis2->setVisible(true);
 
-    ui->customPlot->yAxis2->setLabel("Tangential Velocity (mm/s)");
-    ui->customPlot->yAxis2->setLabelColor(Qt::darkMagenta);
-    ui->customPlot->replot();
+  ui->customPlot->yAxis2->setLabel("Tangential Velocity (mm/s)");
+  ui->customPlot->yAxis2->setLabelColor(Qt::darkMagenta);
+  ui->customPlot->replot();
 }
 
 /**
@@ -292,50 +290,50 @@ void MainWindow::drawProfileGraph() const {
  * slip on, the path without slip is drawn as a faint line in the same group.
  */
 void MainWindow::drawBreadcrumbs() {
-    delete breadcrumbs;  // also deletes the markers
-    breadcrumbs = new QGraphicsItemGroup;
-    breadcrumbs->setZValue(1);
-    mouseScene->addItem(breadcrumbs);
-    if (slipEnabled() && !idealTrack.empty()) {
-        QPainterPath idealPath(QPointF(idealTrack.get_pose_at(0).x(), idealTrack.get_pose_at(0).y()));
-        for (int i = 1; i < idealTrack.record_count(); i++) {
-            idealPath.lineTo(idealTrack.get_pose_at(i).x(), idealTrack.get_pose_at(i).y());
-        }
-        QPen idealPen(QColor(255, 255, 255, 150));
-        idealPen.setWidthF(3.0);
-        mouseScene->addPath(idealPath, idealPen)->setParentItem(breadcrumbs);
+  delete breadcrumbs;  // also deletes the markers
+  breadcrumbs = new QGraphicsItemGroup;
+  breadcrumbs->setZValue(1);
+  mouseScene->addItem(breadcrumbs);
+  if (slipEnabled() && !idealTrack.empty()) {
+    QPainterPath idealPath(QPointF(idealTrack.get_pose_at(0).x(), idealTrack.get_pose_at(0).y()));
+    for (int i = 1; i < idealTrack.record_count(); i++) {
+      idealPath.lineTo(idealTrack.get_pose_at(i).x(), idealTrack.get_pose_at(i).y());
     }
-    QPen markerPen;
-    markerPen.setWidthF(2.0);
-    markerPen.setStyle(Qt::DotLine);
-    for (int i = 0; i < track.record_count(); i += 5) {
-        switch (track.get_phase_at(i)) {
-            case 0:
-                markerPen.setColor(Qt::blue);
-                break;
-            case 1:
-                markerPen.setColor(Qt::green);
-                break;
-            case 2:
-                markerPen.setColor(Qt::red);
-                break;
-            case 3:
-                markerPen.setColor(Qt::yellow);
-                break;
-            case 4:
-                markerPen.setColor(Qt::cyan);
-                break;
-        }
-        Pose pose = track.get_pose_at(i);// draw a breadcrumb
-        mouseScene->addEllipse(pose.x(), pose.y(), 1, 1, markerPen)->setParentItem(breadcrumbs);
+    QPen idealPen(QColor(255, 255, 255, 150));
+    idealPen.setWidthF(3.0);
+    mouseScene->addPath(idealPath, idealPen)->setParentItem(breadcrumbs);
+  }
+  QPen markerPen;
+  markerPen.setWidthF(2.0);
+  markerPen.setStyle(Qt::DotLine);
+  for (int i = 0; i < track.record_count(); i += 5) {
+    switch (track.get_phase_at(i)) {
+      case 0:
+        markerPen.setColor(Qt::blue);
+        break;
+      case 1:
+        markerPen.setColor(Qt::green);
+        break;
+      case 2:
+        markerPen.setColor(Qt::red);
+        break;
+      case 3:
+        markerPen.setColor(Qt::yellow);
+        break;
+      case 4:
+        markerPen.setColor(Qt::cyan);
+        break;
     }
+    Pose pose = track.get_pose_at(i);  // draw a breadcrumb
+    mouseScene->addEllipse(pose.x(), pose.y(), 1, 1, markerPen)->setParentItem(breadcrumbs);
+  }
 }
 
 /// Restore the defaults for every profile and turn, release the held speed or acceleration and repaint
 void MainWindow::resetTurn() {
-    loadDefaults();
-    setParams(turn);
-    rePaint();
+  loadDefaults();
+  setParams(turn);
+  rePaint();
 }
 
 /**
@@ -344,14 +342,14 @@ void MainWindow::resetTurn() {
  * Does not update the spinboxes; the caller calls setParams().
  */
 void MainWindow::loadDefaults() {
-    stored.assign(profile_registry().size(), {});
-    for (size_t p = 0; p < stored.size(); p++) {
-        for (int t = 0; t < TURN_TYPE_COUNT; t++) {
-            TurnDefaults d = profile_registry()[p]->defaults(Turn_t(t));
-            stored[p][t] = {d.offset, d.speed, d.values};
-        }
+  stored.assign(profile_registry().size(), {});
+  for (size_t p = 0; p < stored.size(); p++) {
+    for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+      TurnDefaults d = profile_registry()[p]->defaults(Turn_t(t));
+      stored[p][t] = {d.offset, d.speed, d.values};
     }
-    hold = Hold::None;
+  }
+  hold = Hold::None;
 }
 
 /**
@@ -362,18 +360,18 @@ void MainWindow::loadDefaults() {
  * and stored in params(). Does nothing when nothing is held.
  */
 void MainWindow::applyHold() {
-    float speed;
-    switch (hold) {
-        case Hold::Speed:
-            speed = holdValue;
-            break;
-        case Hold::Acceleration:
-            speed = speedForAcceleration(holdValue);
-            break;
-        default:
-            return;
-    }
-    params().speed = qBound(float(ui->turnSpeedSpinBox->minimum()), speed, float(ui->turnSpeedSpinBox->maximum()));
+  float speed;
+  switch (hold) {
+    case Hold::Speed:
+      speed = holdValue;
+      break;
+    case Hold::Acceleration:
+      speed = speedForAcceleration(holdValue);
+      break;
+    default:
+      return;
+  }
+  params().speed = qBound(float(ui->turnSpeedSpinBox->minimum()), speed, float(ui->turnSpeedSpinBox->maximum()));
 }
 
 /**
@@ -382,58 +380,58 @@ void MainWindow::applyHold() {
  * Called once from the constructor; these items never change.
  */
 void MainWindow::drawMazeWalls() {
-    QPen wallPen(QColor(255, 0, 0, 90));
-    QPen postPen(QColor(255, 0, 0, 180));
-    QPen linePen(QColor(255, 0, 0, 90));
-    QPen originPen(QColor(255, 200, 0, 90));
-    wallPen.setWidthF(12.0);
-    wallPen.setJoinStyle(Qt::MiterJoin);
-    wallPen.setStyle(Qt::SolidLine);
-    postPen.setWidthF(12.0);
-    postPen.setJoinStyle(Qt::MiterJoin);
-    postPen.setStyle(Qt::SolidLine);
-    linePen.setWidthF(2.0);
-    linePen.setStyle(Qt::DotLine);
-    originPen.setWidthF(2.0);
-    originPen.setStyle(Qt::DotLine);
+  QPen wallPen(QColor(255, 0, 0, 90));
+  QPen postPen(QColor(255, 0, 0, 180));
+  QPen linePen(QColor(255, 0, 0, 90));
+  QPen originPen(QColor(255, 200, 0, 90));
+  wallPen.setWidthF(12.0);
+  wallPen.setJoinStyle(Qt::MiterJoin);
+  wallPen.setStyle(Qt::SolidLine);
+  postPen.setWidthF(12.0);
+  postPen.setJoinStyle(Qt::MiterJoin);
+  postPen.setStyle(Qt::SolidLine);
+  linePen.setWidthF(2.0);
+  linePen.setStyle(Qt::DotLine);
+  originPen.setWidthF(2.0);
+  originPen.setStyle(Qt::DotLine);
 
-    mouseScene->addLine(-90, -90, -90, 270, wallPen); // left wall
-    mouseScene->addLine(-90, -90, 90, -90, wallPen); // top left wall
-    mouseScene->addLine(-90, 270, 270, 270, wallPen); // bottom wall
-    mouseScene->addLine(90, 90, 90, 270, wallPen); // inner wall
+  mouseScene->addLine(-90, -90, -90, 270, wallPen);  // left wall
+  mouseScene->addLine(-90, -90, 90, -90, wallPen);   // top left wall
+  mouseScene->addLine(-90, 270, 270, 270, wallPen);  // bottom wall
+  mouseScene->addLine(90, 90, 90, 270, wallPen);     // inner wall
 
-    mouseScene->addLine(270, 90, 270, 91, postPen); // just a post on the right
-    mouseScene->addLine(269, -90, 270, -90, postPen); // top right post
-    mouseScene->addLine(90, 90, 91, 90, postPen); // center post
-    mouseScene->addLine(90, -90, 91, -90, postPen); // top center post
+  mouseScene->addLine(270, 90, 270, 91, postPen);    // just a post on the right
+  mouseScene->addLine(269, -90, 270, -90, postPen);  // top right post
+  mouseScene->addLine(90, 90, 91, 90, postPen);      // center post
+  mouseScene->addLine(90, -90, 91, -90, postPen);    // top center post
 
-    for (int i = 0; i < 5; i++) {
-        mouseScene->addLine(-90 + 90 * i, -90, -90 + 90 * i, 270, linePen);
-        mouseScene->addLine(-90, -90 + 90 * i, 270, -90 + 90 * i, linePen);
-    }
-    // overlay marker lines through the origin
-    mouseScene->addLine(-90, 0, 270, 0, originPen);
-    mouseScene->addLine(0, -90, 0, 270, originPen);
+  for (int i = 0; i < 5; i++) {
+    mouseScene->addLine(-90 + 90 * i, -90, -90 + 90 * i, 270, linePen);
+    mouseScene->addLine(-90, -90 + 90 * i, 270, -90 + 90 * i, linePen);
+  }
+  // overlay marker lines through the origin
+  mouseScene->addLine(-90, 0, 270, 0, originPen);
+  mouseScene->addLine(0, -90, 0, 270, originPen);
 
-    mouseScene->addLine(-90, 180, 0, 270, linePen);
-    mouseScene->addLine(-90, 90, 90, 270, linePen);
-    mouseScene->addLine(-90, 0, 180, 270, linePen);
-    mouseScene->addLine(-90, -90, 270, 270, linePen);
-    mouseScene->addLine(0, -90, 270, 180, linePen);
-    mouseScene->addLine(90, -90, 270, 90, linePen);
-    mouseScene->addLine(180, -90, 270, 0, linePen);
-    mouseScene->addLine(0, -90, -90, 0, linePen);
-    mouseScene->addLine(90, -90, -90, 90, linePen);
-    mouseScene->addLine(180, -90, -90, 180, linePen);
-    mouseScene->addLine(270, -90, -90, 270, linePen);
-    mouseScene->addLine(270, 0, 0, 270, linePen);
-    mouseScene->addLine(270, 90, 90, 270, linePen);
-    mouseScene->addLine(270, 180, 180, 270, linePen);
+  mouseScene->addLine(-90, 180, 0, 270, linePen);
+  mouseScene->addLine(-90, 90, 90, 270, linePen);
+  mouseScene->addLine(-90, 0, 180, 270, linePen);
+  mouseScene->addLine(-90, -90, 270, 270, linePen);
+  mouseScene->addLine(0, -90, 270, 180, linePen);
+  mouseScene->addLine(90, -90, 270, 90, linePen);
+  mouseScene->addLine(180, -90, 270, 0, linePen);
+  mouseScene->addLine(0, -90, -90, 0, linePen);
+  mouseScene->addLine(90, -90, -90, 90, linePen);
+  mouseScene->addLine(180, -90, -90, 180, linePen);
+  mouseScene->addLine(270, -90, -90, 270, linePen);
+  mouseScene->addLine(270, 0, 0, 270, linePen);
+  mouseScene->addLine(270, 90, 90, 270, linePen);
+  mouseScene->addLine(270, 180, 180, 270, linePen);
 
-    // indicate the origin
-    mouseScene->addLine(-5, 0, 5, 0);
-    mouseScene->addLine(0, -5, 0, 5);
-    mouseScene->addEllipse(-5, -5, 10, 10);
+  // indicate the origin
+  mouseScene->addLine(-5, 0, 5, 0);
+  mouseScene->addLine(0, -5, 0, 5);
+  mouseScene->addEllipse(-5, -5, 10, 10);
 }
 
 /**
@@ -446,19 +444,19 @@ void MainWindow::drawMazeWalls() {
  * @param acceleration peak centripetal acceleration, mm/s/s
  */
 void MainWindow::accelerationChanged(int acceleration) {
-    float turnAcceleration = acceleration;
-    hold = Hold::Acceleration;
-    holdValue = turnAcceleration;
-    float turnSpeed = speedForAcceleration(turnAcceleration);
-    params().speed = turnSpeed;
-    ui->turnSpeedSpinBox->blockSignals(true);
-    ui->turnSpeedSpinBox->setValue(qRound(turnSpeed));
-    ui->turnSpeedSpinBox->blockSignals(false);
-    if (ui->turnSpeedSpinBox->value() != qRound(turnSpeed)) {
-        params().speed = ui->turnSpeedSpinBox->value();
-        updateAccelerationBox();
-    }
-    rePaint();
+  float turnAcceleration = acceleration;
+  hold = Hold::Acceleration;
+  holdValue = turnAcceleration;
+  float turnSpeed = speedForAcceleration(turnAcceleration);
+  params().speed = turnSpeed;
+  ui->turnSpeedSpinBox->blockSignals(true);
+  ui->turnSpeedSpinBox->setValue(qRound(turnSpeed));
+  ui->turnSpeedSpinBox->blockSignals(false);
+  if (ui->turnSpeedSpinBox->value() != qRound(turnSpeed)) {
+    params().speed = ui->turnSpeedSpinBox->value();
+    updateAccelerationBox();
+  }
+  rePaint();
 }
 
 /**
@@ -469,12 +467,12 @@ void MainWindow::accelerationChanged(int acceleration) {
  * @param speed turn speed, mm/s
  */
 void MainWindow::speedChanged(int speed) {
-    float turnSpeed = speed;
-    hold = Hold::Speed;
-    holdValue = turnSpeed;
-    params().speed = turnSpeed;
-    updateAccelerationBox();
-    rePaint();
+  float turnSpeed = speed;
+  hold = Hold::Speed;
+  holdValue = turnSpeed;
+  params().speed = turnSpeed;
+  updateAccelerationBox();
+  rePaint();
 }
 
 /**
@@ -482,9 +480,9 @@ void MainWindow::speedChanged(int speed) {
  * @param offset start offset back from the turn base point, mm
  */
 void MainWindow::offsetChanged(int offset) {
-    params().offset = offset;
-    updateStartPosition();
-    rePaint();
+  params().offset = offset;
+  updateStartPosition();
+  rePaint();
 }
 
 /**
@@ -494,16 +492,16 @@ void MainWindow::offsetChanged(int offset) {
  * start heading. Signals are blocked; the caller repaints.
  */
 void MainWindow::updateStartPosition() {
-    const TurnGeometry &g = turnGeometry[turn];
-    float offset = ui->offsetSpinBox->value();
-    float start_x = g.base_x - offset * cos(PI / 2 + radians(g.start_angle));
-    float start_y = g.base_y - offset * sin(PI / 2 + radians(g.start_angle));
-    ui->startXSpinBox->blockSignals(true);
-    ui->startXSpinBox->setValue(int(start_x));
-    ui->startXSpinBox->blockSignals(false);
-    ui->startYSpinBox->blockSignals(true);
-    ui->startYSpinBox->setValue(int(start_y));
-    ui->startYSpinBox->blockSignals(false);
+  const TurnGeometry &g = turnGeometry[turn];
+  float offset = ui->offsetSpinBox->value();
+  float start_x = g.base_x - offset * cos(PI / 2 + radians(g.start_angle));
+  float start_y = g.base_y - offset * sin(PI / 2 + radians(g.start_angle));
+  ui->startXSpinBox->blockSignals(true);
+  ui->startXSpinBox->setValue(int(start_x));
+  ui->startXSpinBox->blockSignals(false);
+  ui->startYSpinBox->blockSignals(true);
+  ui->startYSpinBox->setValue(int(start_y));
+  ui->startYSpinBox->blockSignals(false);
 }
 
 /**
@@ -511,8 +509,8 @@ void MainWindow::updateStartPosition() {
  * @param angle sensor angle, degrees
  */
 void MainWindow::sensorAngleChanged(int angle) {
-    theMouse->setSensorAngle(angle);
-    rePaint();
+  theMouse->setSensorAngle(angle);
+  rePaint();
 }
 
 /**
@@ -527,24 +525,24 @@ void MainWindow::sensorAngleChanged(int angle) {
  *        spinboxes must already be built for the current profile
  */
 void MainWindow::setParams(int turn_index) {
-    turn = Turn_t(turn_index);
-    applyHold();
-    const TurnValues &v = params();
-    std::vector<QAbstractSpinBox *> boxes = {ui->offsetSpinBox, ui->turnSpeedSpinBox};
-    boxes.insert(boxes.end(), paramBoxes.begin(), paramBoxes.end());
-    for (QAbstractSpinBox *box : boxes) {
-        box->blockSignals(true);
-    }
-    ui->offsetSpinBox->setValue(int(v.offset));
-    ui->turnSpeedSpinBox->setValue(int(v.speed));
-    for (size_t i = 0; i < paramBoxes.size(); i++) {
-        paramBoxes[i]->setValue(v.values[i]);
-    }
-    for (QAbstractSpinBox *box : boxes) {
-        box->blockSignals(false);
-    }
-    updateAccelerationBox();
-    updateStartPosition();
+  turn = Turn_t(turn_index);
+  applyHold();
+  const TurnValues &v = params();
+  std::vector<QAbstractSpinBox *> boxes = {ui->offsetSpinBox, ui->turnSpeedSpinBox};
+  boxes.insert(boxes.end(), paramBoxes.begin(), paramBoxes.end());
+  for (QAbstractSpinBox *box : boxes) {
+    box->blockSignals(true);
+  }
+  ui->offsetSpinBox->setValue(int(v.offset));
+  ui->turnSpeedSpinBox->setValue(int(v.speed));
+  for (size_t i = 0; i < paramBoxes.size(); i++) {
+    paramBoxes[i]->setValue(v.values[i]);
+  }
+  for (QAbstractSpinBox *box : boxes) {
+    box->blockSignals(false);
+  }
+  updateAccelerationBox();
+  updateStartPosition();
 }
 
 /**
@@ -553,7 +551,7 @@ void MainWindow::setParams(int turn_index) {
  * @return peak centripetal acceleration in mm/s/s
  */
 float MainWindow::peakAcceleration(float speed) const {
-    return profile().peak_acceleration(turnSetup(), speed, params().values);
+  return profile().peak_acceleration(turnSetup(), speed, params().values);
 }
 
 /**
@@ -562,7 +560,7 @@ float MainWindow::peakAcceleration(float speed) const {
  * @return turn speed in mm/s
  */
 float MainWindow::speedForAcceleration(float acceleration) const {
-    return profile().speed_for_acceleration(turnSetup(), acceleration, params().values);
+  return profile().speed_for_acceleration(turnSetup(), acceleration, params().values);
 }
 
 /**
@@ -571,9 +569,9 @@ float MainWindow::speedForAcceleration(float acceleration) const {
  * Signals are blocked so the speed is not recalculated from the rounded value.
  */
 void MainWindow::updateAccelerationBox() {
-    ui->accelerationSpinBox->blockSignals(true);
-    ui->accelerationSpinBox->setValue(qRound(peakAcceleration(ui->turnSpeedSpinBox->value())));
-    ui->accelerationSpinBox->blockSignals(false);
+  ui->accelerationSpinBox->blockSignals(true);
+  ui->accelerationSpinBox->setValue(qRound(peakAcceleration(ui->turnSpeedSpinBox->value())));
+  ui->accelerationSpinBox->blockSignals(false);
 }
 
 /**
@@ -584,19 +582,19 @@ void MainWindow::updateAccelerationBox() {
  * @return setup for TurnProfile::simulate()
  */
 TurnSetup MainWindow::turnSetup() const {
-    TurnSetup setup;
-    setup.start_x = ui->startXSpinBox->value();
-    setup.start_y = -ui->startYSpinBox->value();
-    setup.start_angle = -turnGeometry[turn].start_angle;
-    setup.turn_angle = turnGeometry[turn].angle;
-    setup.interval = loopInterval;
-    setup.slip.gradient = float(ui->slipGradientSpinBox->value());
-    setup.slip.load_factor = float(ui->loadFactorSpinBox->value());
-    return setup;
+  TurnSetup setup;
+  setup.start_x = ui->startXSpinBox->value();
+  setup.start_y = -ui->startYSpinBox->value();
+  setup.start_angle = -turnGeometry[turn].start_angle;
+  setup.turn_angle = turnGeometry[turn].angle;
+  setup.interval = loopInterval;
+  setup.slip.gradient = float(ui->slipGradientSpinBox->value());
+  setup.slip.load_factor = float(ui->loadFactorSpinBox->value());
+  return setup;
 }
 
 bool MainWindow::slipEnabled() const {
-    return ui->slipGradientSpinBox->value() > 0;
+  return ui->slipGradientSpinBox->value() > 0;
 }
 
 /**
@@ -605,16 +603,16 @@ bool MainWindow::slipEnabled() const {
  * Changed values are stored and shown in their spinboxes without signals.
  */
 void MainWindow::constrainParams() {
-    std::vector<float> values = params().values;
-    if (!profile().constrain(turnSetup(), values)) {
-        return;
-    }
-    params().values = values;
-    for (size_t i = 0; i < paramBoxes.size(); i++) {
-        paramBoxes[i]->blockSignals(true);
-        paramBoxes[i]->setValue(values[i]);
-        paramBoxes[i]->blockSignals(false);
-    }
+  std::vector<float> values = params().values;
+  if (!profile().constrain(turnSetup(), values)) {
+    return;
+  }
+  params().values = values;
+  for (size_t i = 0; i < paramBoxes.size(); i++) {
+    paramBoxes[i]->blockSignals(true);
+    paramBoxes[i]->setValue(values[i]);
+    paramBoxes[i]->blockSignals(false);
+  }
 }
 
 /**
@@ -623,15 +621,15 @@ void MainWindow::constrainParams() {
  * Button ids are registry indices.
  */
 void MainWindow::buildProfileButtons() {
-    profileGroup = new QButtonGroup(this);
-    const auto &profiles = profile_registry();
-    for (size_t i = 0; i < profiles.size(); i++) {
-        auto *button = new QRadioButton(QString::fromStdString(profiles[i]->name()), ui->gbTurnProfile);
-        button->setToolTip(QString::fromStdString(profiles[i]->description()));
-        ui->profileLayout->addWidget(button);
-        profileGroup->addButton(button, int(i));
-    }
-    connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
+  profileGroup = new QButtonGroup(this);
+  const auto &profiles = profile_registry();
+  for (size_t i = 0; i < profiles.size(); i++) {
+    auto *button = new QRadioButton(QString::fromStdString(profiles[i]->name()), ui->gbTurnProfile);
+    button->setToolTip(QString::fromStdString(profiles[i]->description()));
+    ui->profileLayout->addWidget(button);
+    profileGroup->addButton(button, int(i));
+  }
+  connect(profileGroup, &QButtonGroup::idClicked, this, &MainWindow::selectProfile);
 }
 
 /**
@@ -643,18 +641,18 @@ void MainWindow::buildProfileButtons() {
  * SS90F defaults.
  */
 void MainWindow::buildRowLabels() {
-    for (const TurnProfile *p : profile_registry()) {
-        std::vector<ParamDef> defs = p->params();
-        for (size_t i = paramRowLabels.size(); i < defs.size(); i++) {
-            paramRowLabels.push_back(defs[i].label);
-        }
-        TurnSetup setup;
-        setup.turn_angle = turnGeometry[TURN_SS90F].angle;
-        std::vector<SummaryLine> lines = p->summary(setup, p->defaults(TURN_SS90F).values);
-        for (size_t i = summaryRowLabels.size(); i < lines.size(); i++) {
-            summaryRowLabels.push_back(lines[i]);
-        }
+  for (const TurnProfile *p : profile_registry()) {
+    std::vector<ParamDef> defs = p->params();
+    for (size_t i = paramRowLabels.size(); i < defs.size(); i++) {
+      paramRowLabels.push_back(defs[i].label);
     }
+    TurnSetup setup;
+    setup.turn_angle = turnGeometry[TURN_SS90F].angle;
+    std::vector<SummaryLine> lines = p->summary(setup, p->defaults(TURN_SS90F).values);
+    for (size_t i = summaryRowLabels.size(); i < lines.size(); i++) {
+      summaryRowLabels.push_back(lines[i]);
+    }
+  }
 }
 
 /**
@@ -665,42 +663,42 @@ void MainWindow::buildRowLabels() {
  * profile's parameters, up to paramRowLabels, are disabled and show "-".
  */
 void MainWindow::buildParamRows() {
-    for (QDoubleSpinBox *box : paramBoxes) {
-        ui->paramLayout->removeRow(box);  // deletes the label too
-    }
-    for (QDoubleSpinBox *box : spareBoxes) {
-        ui->paramLayout->removeRow(box);
-    }
-    paramBoxes.clear();
-    spareBoxes.clear();
-    const int firstRow = 2;  // after speed and acceleration
-    std::vector<ParamDef> defs = profile().params();
-    for (size_t i = 0; i < defs.size(); i++) {
-        const ParamDef &def = defs[i];
-        auto *box = new QDoubleSpinBox;
-        box->setObjectName(QString::fromStdString("param_" + def.id));
-        box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        box->setAccelerated(true);
-        box->setKeyboardTracking(false);  // typed values take effect on Enter or focus loss
-        box->setDecimals(def.decimals);
-        box->setRange(def.min, def.max);
-        box->setSingleStep(def.step);
-        box->setToolTip(QString::fromStdString(def.label + " (" + def.units + ")"));
-        connect(box, &QDoubleSpinBox::valueChanged, this, [this, i](double value) { paramChanged(int(i), value); });
-        ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(def.label + ":"), box);
-        paramBoxes.push_back(box);
-    }
-    for (size_t i = defs.size(); i < paramRowLabels.size(); i++) {
-        auto *box = new QDoubleSpinBox;
-        box->setObjectName(QString("param_unused_%1").arg(i));
-        box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
-        box->setRange(0, 0);
-        box->setSpecialValueText("-");  // shown at the minimum, the only value
-        box->setEnabled(false);
-        box->setToolTip(tr("Not used by this profile"));
-        ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(paramRowLabels[i] + ":"), box);
-        spareBoxes.push_back(box);
-    }
+  for (QDoubleSpinBox *box : paramBoxes) {
+    ui->paramLayout->removeRow(box);  // deletes the label too
+  }
+  for (QDoubleSpinBox *box : spareBoxes) {
+    ui->paramLayout->removeRow(box);
+  }
+  paramBoxes.clear();
+  spareBoxes.clear();
+  const int firstRow = 2;  // after speed and acceleration
+  std::vector<ParamDef> defs = profile().params();
+  for (size_t i = 0; i < defs.size(); i++) {
+    const ParamDef &def = defs[i];
+    auto *box = new QDoubleSpinBox;
+    box->setObjectName(QString::fromStdString("param_" + def.id));
+    box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+    box->setAccelerated(true);
+    box->setKeyboardTracking(false);  // typed values take effect on Enter or focus loss
+    box->setDecimals(def.decimals);
+    box->setRange(def.min, def.max);
+    box->setSingleStep(def.step);
+    box->setToolTip(QString::fromStdString(def.label + " (" + def.units + ")"));
+    connect(box, &QDoubleSpinBox::valueChanged, this, [this, i](double value) { paramChanged(int(i), value); });
+    ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(def.label + ":"), box);
+    paramBoxes.push_back(box);
+  }
+  for (size_t i = defs.size(); i < paramRowLabels.size(); i++) {
+    auto *box = new QDoubleSpinBox;
+    box->setObjectName(QString("param_unused_%1").arg(i));
+    box->setAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+    box->setRange(0, 0);
+    box->setSpecialValueText("-");  // shown at the minimum, the only value
+    box->setEnabled(false);
+    box->setToolTip(tr("Not used by this profile"));
+    ui->paramLayout->insertRow(firstRow + int(i), QString::fromStdString(paramRowLabels[i] + ":"), box);
+    spareBoxes.push_back(box);
+  }
 }
 
 /**
@@ -715,16 +713,16 @@ void MainWindow::buildParamRows() {
  * @param value new value
  */
 void MainWindow::paramChanged(int index, double value) {
-    params().values[index] = value;
-    constrainParams();
-    if (hold == Hold::Acceleration) {
-        applyHold();
-        ui->turnSpeedSpinBox->blockSignals(true);
-        ui->turnSpeedSpinBox->setValue(qRound(params().speed));
-        ui->turnSpeedSpinBox->blockSignals(false);
-    }
-    updateAccelerationBox();
-    rePaint();
+  params().values[index] = value;
+  constrainParams();
+  if (hold == Hold::Acceleration) {
+    applyHold();
+    ui->turnSpeedSpinBox->blockSignals(true);
+    ui->turnSpeedSpinBox->setValue(qRound(params().speed));
+    ui->turnSpeedSpinBox->blockSignals(false);
+  }
+  updateAccelerationBox();
+  rePaint();
 }
 
 /**
@@ -735,10 +733,10 @@ void MainWindow::paramChanged(int index, double value) {
  * @param profile_index index in profile_registry(), the profileGroup button id
  */
 void MainWindow::selectProfile(int profile_index) {
-    turnProfile = profile_index;
-    buildParamRows();
-    setParams(turn);
-    rePaint();
+  turnProfile = profile_index;
+  buildParamRows();
+  setParams(turn);
+  rePaint();
 }
 
 /**
@@ -747,8 +745,8 @@ void MainWindow::selectProfile(int profile_index) {
  * @param turn_index turn type (Turn_t), the turnGroup button id
  */
 void MainWindow::selectTurn(int turn_index) {
-    turn = Turn_t(turn_index);
-    setParams(turn);
-    progressFraction = 0;
-    rePaint();
+  turn = Turn_t(turn_index);
+  setParams(turn);
+  progressFraction = 0;
+  rePaint();
 }

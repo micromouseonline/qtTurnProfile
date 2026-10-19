@@ -1,6 +1,13 @@
 # qtTurnProfile
 
-A Qt6 application that simulates a number of different turn profile strategies for a micromouse.
+A Qt6 application that lets a micromouse builder model specific turn types using a
+variety of angular velocity profiles (trapezoid, sinusoid, cubic, hybrid) across a
+range of turn speeds.
+
+An optional tyre slip model takes a slip gradient (deg/g) and a downforce load
+factor. Each turn is then simulated with and without slip, and the path error at
+the end of the leadout is reported, so entry and exit position adjustments can be
+estimated for each turn.
 
 ## Requirements
 

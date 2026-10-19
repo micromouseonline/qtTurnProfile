@@ -19,52 +19,50 @@
  * shape parameters after these; the transition hooks receive all values.
  */
 class SegmentedProfile : public TurnProfile {
-public:
-    enum { RADIUS = 0, LAMBDA = 1 };
+ public:
+  enum { RADIUS = 0, LAMBDA = 1 };
 
-    std::vector<ParamDef> params() const override;
+  std::vector<ParamDef> params() const override;
 
-    void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values, Track &track) const override;
+  void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values, Track &track) const override;
 
-    /// a = v^2 / r: the peak is in the constant radius arc (valid while the arc exists)
-    float peak_acceleration(const TurnSetup &setup, float speed, const std::vector<float> &values) const override;
+  /// a = v^2 / r: the peak is in the constant radius arc (valid while the arc exists)
+  float peak_acceleration(const TurnSetup &setup, float speed, const std::vector<float> &values) const override;
 
-    float speed_for_acceleration(const TurnSetup &setup, float acceleration,
-                                 const std::vector<float> &values) const override;
+  float speed_for_acceleration(const TurnSetup &setup, float acceleration, const std::vector<float> &values) const override;
 
-    /// Clamps lambda to max_lambda()
-    bool constrain(const TurnSetup &setup, std::vector<float> &values) const override;
+  /// Clamps lambda to max_lambda()
+  bool constrain(const TurnSetup &setup, std::vector<float> &values) const override;
 
-    /// Adds "Lambda Max"
-    std::vector<SummaryLine> summary(const TurnSetup &setup, const std::vector<float> &values) const override;
+  /// Adds "Lambda Max"
+  std::vector<SummaryLine> summary(const TurnSetup &setup, const std::vector<float> &values) const override;
 
-    /**
-     * @brief Largest lambda that leaves a non-negative constant radius arc.
-     *
-     * Each transition turns through k * lambda / radius radians. Both must fit
-     * in the turn angle, so lambda <= angle * radius / (2k). A larger lambda
-     * makes phase 3 overrun and the turn falls short.
-     *
-     * @param values parameter values (radius, lambda, any shape parameters);
-     *        lambda itself is not used
-     * @param turn_angle total turn angle, degrees
-     * @return maximum lambda, mm
-     */
-    float max_lambda(const std::vector<float> &values, float turn_angle) const;
+  /**
+   * @brief Largest lambda that leaves a non-negative constant radius arc.
+   *
+   * Each transition turns through k * lambda / radius radians. Both must fit
+   * in the turn angle, so lambda <= angle * radius / (2k). A larger lambda
+   * makes phase 3 overrun and the turn falls short.
+   *
+   * @param values parameter values (radius, lambda, any shape parameters);
+   *        lambda itself is not used
+   * @param turn_angle total turn angle, degrees
+   * @return maximum lambda, mm
+   */
+  float max_lambda(const std::vector<float> &values, float turn_angle) const;
 
-protected:
-    /// Angle turned in one transition, degrees, for lambda, arc omega (deg/s) and speed
-    virtual float transition_angle(float lambda, float turn_omega, float speed,
-                                   const std::vector<float> &values) const = 0;
+ protected:
+  /// Angle turned in one transition, degrees, for lambda, arc omega (deg/s) and speed
+  virtual float transition_angle(float lambda, float turn_omega, float speed, const std::vector<float> &values) const = 0;
 
-    /// Omega at distance x from the zero-omega end of a transition
-    virtual float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const = 0;
+  /// Omega at distance x from the zero-omega end of a transition
+  virtual float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const = 0;
 
-    /// 1 / (2k): max_lambda() = lambda_limit() * angle in radians * radius
-    virtual float lambda_limit(const std::vector<float> &values) const = 0;
+  /// 1 / (2k): max_lambda() = lambda_limit() * angle in radians * radius
+  virtual float lambda_limit(const std::vector<float> &values) const = 0;
 
-    /// The turn ends when theta is within this many degrees of the end angle
-    virtual double tolerance() const { return 0.01; }
+  /// The turn ends when theta is within this many degrees of the end angle
+  virtual double tolerance() const { return 0.01; }
 };
 
 #endif  // SEGMENTED_PROFILE_H

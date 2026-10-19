@@ -31,97 +31,89 @@ constexpr float GRAVITY = 9806.65f;
  * (no fan): gradient = measured crab angle / tan(slope angle).
  */
 struct SlipParams {
-    float gradient = 0;     ///< slip angle per g of lateral acceleration, deg/g; 0 = no slip
-    float load_factor = 1;  ///< normal load / weight, (m*g + downforce) / (m*g); 1 = no fan
+  float gradient = 0;     ///< slip angle per g of lateral acceleration, deg/g; 0 = no slip
+  float load_factor = 1;  ///< normal load / weight, (m*g + downforce) / (m*g); 1 = no fan
 };
 
 class RobotState {
-public:
-    RobotState() {
-        reset();
+ public:
+  RobotState() { reset(); }
+
+  RobotState(float start_x, float start_y, float start_angle, float start_speed, float interval)
+      : x(start_x), y(start_y), theta(start_angle), speed(start_speed), m_interval(interval) {}
+
+  explicit RobotState(float interval) {
+    reset();
+    set_interval(interval);
+  }
+
+  void reset() {
+    time = 0;
+    distance = 0;
+    x = 0;
+    y = 0;
+    theta = 0;
+    alpha = 0;
+    omega = 0;
+    speed = 0;
+    acceleration = 0;
+    slip = 0;
+    phase = 0;
+    m_oldOmega = 0;
+    m_interval = 0;
+  }
+
+  void set_interval(float interval) { m_interval = interval; }
+
+  /// Set the tyre slip model used by update()
+  void set_slip(const SlipParams &slip_params) { m_slip = slip_params; }
+
+  /**
+   * @brief Advance one interval at the current speed and omega.
+   *
+   * The position moves along the course, heading - slip, at the start of
+   * the step. Slip then advances by the exact solution of
+   * d(slip)/dt = omega - slip / tau over the step (see SlipParams), so it is
+   * stable for any tau and settles to exactly omega * tau in a constant arc.
+   * With no slip the course is the heading.
+   */
+  void update() {
+    float delta = speed * m_interval;
+    time += m_interval;
+    distance += delta;
+    x += -delta * cos(PI / 2 + radians(theta - slip));
+    y += -delta * sin(PI / 2 + radians(theta - slip));
+    float tau = float(radians(m_slip.gradient)) * speed / (GRAVITY * m_slip.load_factor);
+    if (tau > 0) {
+      float settled = omega * tau;
+      slip = settled + (slip - settled) * std::exp(-m_interval / tau);
+    } else {
+      slip = 0;
     }
+    theta += omega * m_interval;
+    pose.set_pose(x, y, theta);
+    acceleration = speed * radians(omega);
+    alpha = omega - m_oldOmega;
+    m_oldOmega = omega;
+  }
 
-    RobotState(float start_x, float start_y, float start_angle, float start_speed, float interval) :
-            x(start_x), y(start_y), theta(start_angle), speed(start_speed), m_interval(interval) {
+  float time{};
+  float distance{};
+  float x{};
+  float y{};
+  float theta{};
+  Pose pose{};
+  float alpha{};
+  float omega{};
+  float speed{};
+  float acceleration{};
+  float slip{};  ///< slip angle, degrees: heading minus course (direction of travel)
+  int phase{};
 
-    }
-
-    explicit RobotState(float interval) {
-        reset();
-        set_interval(interval);
-    }
-
-    void reset() {
-        time = 0;
-        distance = 0;
-        x = 0;
-        y = 0;
-        theta = 0;
-        alpha = 0;
-        omega = 0;
-        speed = 0;
-        acceleration = 0;
-        slip = 0;
-        phase = 0;
-        m_oldOmega = 0;
-        m_interval = 0;
-    }
-
-    void set_interval(float interval) {
-        m_interval = interval;
-    }
-
-    /// Set the tyre slip model used by update()
-    void set_slip(const SlipParams &slip_params) {
-        m_slip = slip_params;
-    }
-
-    /**
-     * @brief Advance one interval at the current speed and omega.
-     *
-     * The position moves along the course, heading - slip, at the start of
-     * the step. Slip then advances by the exact solution of
-     * d(slip)/dt = omega - slip / tau over the step (see SlipParams), so it is
-     * stable for any tau and settles to exactly omega * tau in a constant arc.
-     * With no slip the course is the heading.
-     */
-    void update() {
-        float delta = speed * m_interval;
-        time += m_interval;
-        distance += delta;
-        x += -delta * cos(PI / 2 + radians(theta - slip));
-        y += -delta * sin(PI / 2 + radians(theta - slip));
-        float tau = float(radians(m_slip.gradient)) * speed / (GRAVITY * m_slip.load_factor);
-        if (tau > 0) {
-            float settled = omega * tau;
-            slip = settled + (slip - settled) * std::exp(-m_interval / tau);
-        } else {
-            slip = 0;
-        }
-        theta += omega * m_interval;
-        pose.set_pose(x, y, theta);
-        acceleration = speed * radians(omega);
-        alpha = omega - m_oldOmega;
-        m_oldOmega = omega;
-    }
-
-    float time{};
-    float distance{};
-    float x{};
-    float y{};
-    float theta{};
-    Pose pose{};
-    float alpha{};
-    float omega{};
-    float speed{};
-    float acceleration{};
-    float slip{};  ///< slip angle, degrees: heading minus course (direction of travel)
-    int phase{};
-private:
-    float m_oldOmega{};
-    float m_interval{};
-    SlipParams m_slip{};
+ private:
+  float m_oldOmega{};
+  float m_interval{};
+  SlipParams m_slip{};
 };
 
-
-#endif //QTTURNPROFILE_ROBOTSTATE_H
+#endif  // QTTURNPROFILE_ROBOTSTATE_H

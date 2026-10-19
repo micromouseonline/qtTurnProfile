@@ -3,12 +3,12 @@
 
 #include <QMainWindow>
 
-#include "mouseitem.h"
-#include "qcustomplot.h"
-#include "track.h"
-#include "robotstate.h"
 #include <array>
 #include <vector>
+#include "mouseitem.h"
+#include "qcustomplot.h"
+#include "robotstate.h"
+#include "track.h"
 #include "turn_profile.h"
 
 struct MainWindowUi;
@@ -17,9 +17,9 @@ const float loopInterval = 0.001;
 
 /// Editable values for one turn of one profile; geometry is in turnGeometry
 struct TurnValues {
-    float offset;               ///< start offset back from the turn base point, mm
-    float speed;                ///< turn speed, mm/s
-    std::vector<float> values;  ///< profile parameters, in the order of TurnProfile::params()
+  float offset;               ///< start offset back from the turn base point, mm
+  float speed;                ///< turn speed, mm/s
+  std::vector<float> values;  ///< profile parameters, in the order of TurnProfile::params()
 };
 
 class QButtonGroup;
@@ -28,115 +28,114 @@ class QGraphicsItemGroup;
 class QGraphicsScene;
 
 class MainWindow : public QMainWindow {
-Q_OBJECT
+  Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget *parent = nullptr);
+ public:
+  explicit MainWindow(QWidget *parent = nullptr);
 
-    ~MainWindow() override;
+  ~MainWindow() override;
 
-public slots:
+ public slots:
 
-    void rePaint();
+  void rePaint();
 
-private slots:
+ private slots:
 
-    void selectProfile(int profile_index);
+  void selectProfile(int profile_index);
 
-    void selectTurn(int turn_index);
+  void selectTurn(int turn_index);
 
-    void resetTurn();
+  void resetTurn();
 
-    void accelerationChanged(int acceleration);
+  void accelerationChanged(int acceleration);
 
-    void speedChanged(int speed);
+  void speedChanged(int speed);
 
-    void offsetChanged(int offset);
+  void offsetChanged(int offset);
 
-    void sensorAngleChanged(int angle);
+  void sensorAngleChanged(int angle);
 
-private:
-    /// Working values, indexed [profile][turn]. Edits persist until reset;
-    /// profiles are independent of each other.
-    std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
-    /// Which of speed or acceleration the user last set; held across profile and turn changes
-    enum class Hold { None, Speed, Acceleration };
-    Hold hold = Hold::None;  ///< cleared by reset; None means each turn uses its stored speed
-    float holdValue = 0;     ///< held speed (mm/s) or acceleration (mm/s/s), per hold
-    Track track;  ///< the simulated turn and leadout
-    Track idealTrack;  ///< the same turn without slip; a copy of track when slip is off
-    QCPAxis *slipAxis;   ///< slip angle axis, in the plot above the speed plot
-    QCPAxis *slipTime;   ///< time axis of the slip plot; follows the main time axis
-    Turn_t turn = TURN_SS90F;
-    int turnProfile = 0;  ///< index into profile_registry()
-    MainWindowUi *ui;
-    MouseItem *theMouse;
-    QGraphicsScene *mouseScene;
-    QButtonGroup *profileGroup;  ///< profile radio buttons, id = registry index
-    QButtonGroup *turnGroup;     ///< turn type radio buttons, id = Turn_t
-    QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
-    /// Slider position as a fraction of the turn, 0..1. Changed only by the user, so
-    /// recalculations round from it once instead of accumulating rounding errors.
-    double progressFraction = 0;
-    std::vector<QDoubleSpinBox *> paramBoxes;   ///< spinboxes for the current profile's parameters
-    std::vector<QDoubleSpinBox *> spareBoxes;   ///< disabled rows padding paramBoxes to paramRowLabels
-    /// One label per parameter row: the most parameters any profile has. Row i is labelled
-    /// by the first profile with a parameter i; profiles with fewer show it disabled, so
-    /// the layout does not change between profiles.
-    std::vector<std::string> paramRowLabels;
-    /// Profile summary lines padded the same way (label and units; value unused)
-    std::vector<SummaryLine> summaryRowLabels;
+ private:
+  /// Working values, indexed [profile][turn]. Edits persist until reset;
+  /// profiles are independent of each other.
+  std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
+  /// Which of speed or acceleration the user last set; held across profile and turn changes
+  enum class Hold { None, Speed, Acceleration };
+  Hold hold = Hold::None;  ///< cleared by reset; None means each turn uses its stored speed
+  float holdValue = 0;     ///< held speed (mm/s) or acceleration (mm/s/s), per hold
+  Track track;             ///< the simulated turn and leadout
+  Track idealTrack;        ///< the same turn without slip; a copy of track when slip is off
+  QCPAxis *slipAxis;       ///< slip angle axis, in the plot above the speed plot
+  QCPAxis *slipTime;       ///< time axis of the slip plot; follows the main time axis
+  Turn_t turn = TURN_SS90F;
+  int turnProfile = 0;  ///< index into profile_registry()
+  MainWindowUi *ui;
+  MouseItem *theMouse;
+  QGraphicsScene *mouseScene;
+  QButtonGroup *profileGroup;                 ///< profile radio buttons, id = registry index
+  QButtonGroup *turnGroup;                    ///< turn type radio buttons, id = Turn_t
+  QGraphicsItemGroup *breadcrumbs = nullptr;  ///< breadcrumb markers, rebuilt each recalculation
+  /// Slider position as a fraction of the turn, 0..1. Changed only by the user, so
+  /// recalculations round from it once instead of accumulating rounding errors.
+  double progressFraction = 0;
+  std::vector<QDoubleSpinBox *> paramBoxes;  ///< spinboxes for the current profile's parameters
+  std::vector<QDoubleSpinBox *> spareBoxes;  ///< disabled rows padding paramBoxes to paramRowLabels
+  /// One label per parameter row: the most parameters any profile has. Row i is labelled
+  /// by the first profile with a parameter i; profiles with fewer show it disabled, so
+  /// the layout does not change between profiles.
+  std::vector<std::string> paramRowLabels;
+  /// Profile summary lines padded the same way (label and units; value unused)
+  std::vector<SummaryLine> summaryRowLabels;
 
-    /// The current profile
-    const TurnProfile &profile() const { return *profile_registry()[turnProfile]; }
+  /// The current profile
+  const TurnProfile &profile() const { return *profile_registry()[turnProfile]; }
 
-    /// Working values for the current profile and turn type
-    TurnValues &params() { return stored[turnProfile][turn]; }
+  /// Working values for the current profile and turn type
+  TurnValues &params() { return stored[turnProfile][turn]; }
 
-    /// Working values for the current profile and turn type
-    const TurnValues &params() const { return stored[turnProfile][turn]; }
+  /// Working values for the current profile and turn type
+  const TurnValues &params() const { return stored[turnProfile][turn]; }
 
-    void setParams(int turn_index);
+  void setParams(int turn_index);
 
-    void loadDefaults();
+  void loadDefaults();
 
-    void applyHold();
+  void applyHold();
 
-    void drawMazeWalls();
+  void drawMazeWalls();
 
-    void buildProfileButtons();
+  void buildProfileButtons();
 
-    void buildRowLabels();
+  void buildRowLabels();
 
-    void buildParamRows();
+  void buildParamRows();
 
-    void paramChanged(int index, double value);
+  void paramChanged(int index, double value);
 
-    TurnSetup turnSetup() const;
+  TurnSetup turnSetup() const;
 
-    /// True when the slip gradient is above zero
-    bool slipEnabled() const;
+  /// True when the slip gradient is above zero
+  bool slipEnabled() const;
 
-    float peakAcceleration(float speed) const;
+  float peakAcceleration(float speed) const;
 
-    float speedForAcceleration(float acceleration) const;
+  float speedForAcceleration(float acceleration) const;
 
-    void updateAccelerationBox();
+  void updateAccelerationBox();
 
-    void updateStartPosition();
+  void updateStartPosition();
 
-    void constrainParams();
+  void constrainParams();
 
-    void sliderMoved(int value);
+  void sliderMoved(int value);
 
-    void showProgress();
+  void showProgress();
 
-    void showTurnSummary() const;
+  void showTurnSummary() const;
 
-    void drawBreadcrumbs();
+  void drawBreadcrumbs();
 
-    void drawProfileGraph() const;
-
+  void drawProfileGraph() const;
 };
 
 #endif  // MAINWINDOW_H

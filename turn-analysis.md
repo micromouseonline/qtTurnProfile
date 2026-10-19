@@ -1,8 +1,118 @@
-# Turn profile analysis: cubic vs sinusoid at 5.6 g
+# Turn profile analysis and recommendation
 
 Compares the turn profiles for fast turns at a fixed peak centripetal
 acceleration, with each turn fitted to the same space in the maze. Results
 are from the simulator physics (no slip, gyro heading, constant speed).
+
+## Recommendation
+
+Goal: shortest time over a series of turn + straight moves without losing
+reliability.
+
+### Summary
+
+- In simulation one ranking holds for all 8 turn types and all peak
+  accelerations (1 to 5.5 g): hybrid > sinusoid (share 0.72) > cubic >
+  trapezoid > raised cosine. Same footprint, no more peak wheel acceleration
+  or combined load than the cubic.
+- Use one implementation: the hybrid, with per-turn parameters. Blend 0 is
+  exactly the sinusoid, so it covers both.
+  - Long turns (SS90F, SS180, SD135, DS135): blend 0.7-0.85, 2.4-3.6%
+    quicker than the sinusoid.
+  - DD90: blend 0.5, 1.8% quicker.
+  - Short turns (SD45, DS45, SS90E): blend 0-0.15, effectively the sinusoid
+    (0-0.4% gain).
+- Mixing sinusoid and cubic gains nothing: the sinusoid's best share is the
+  same in every turn.
+- Not proven on the robot. The hybrid holds its limits longest and so has
+  the least margin (see Unresolved below). Lowest-risk first step: the
+  sinusoid at share 0.72, at the cubic's peaks.
+
+### Profile comparison
+
+Same footprint and limits as the cubic.
+
+| profile | advantages | disadvantages |
+|---|---|---|
+| Cubic | one parameter, closed form; proven on D5 at 55 m/s/s; empirical slip table exists | 3-6% slower than the hybrid; alpha steps at entry |
+| Sinusoid (quarter sine) | 3.0-3.5% quicker than the cubic in every turn, no extra load; one best share (0.72) for all turns and A; cheap to evaluate | two parameters; alpha steps at entry; slip compensation must be recalculated |
+| Hybrid | quickest (3.0-6.2% vs cubic); blend 0 = sinusoid | three parameters; holds limits longest, least margin; best blend differs per turn; not run on a robot |
+| Trapezoid | simple; sets the wheel limit directly | fits the cubic's limits in 1 of 8 turns (SS90E, 11.6% slower); load peaks at ramp/arc corner; figures approximate |
+| Raised cosine | smooth at both ends | 6-16% slower than the cubic; not in the app |
+
+### Margin and contest run tiers
+
+Usual practice is at least three speed runs: about 95% reliable, then
+75-80%, then a "hail mary" just over 50% (some owners stop at about 85%).
+Profiles should be compared on time at a given run reliability, not at
+equal peak load.
+
+Run reliability is the product of the per-turn reliabilities (assuming
+independent failures). Per-turn reliability needed:
+
+| run target | 10 turns | 20 turns |
+|---|---|---|
+| 95% | 99.5% | 99.7% |
+| 80% | 97.8% | 98.9% |
+| 50% | 93.3% | 96.6% |
+
+Even the hail mary needs every turn above 93%, so all tiers sit below the
+knee. D5 SS90F at 60 m/s/s (about 40%) is unusable in any tier; 55 m/s/s
+(80-90%) only fits a run with few turns.
+
+Time scales as 1 / sqrt(A), so a profile g quicker at the same A matches the
+cubic's time at (1 - g)^2 * A:
+
+| profile | gain at same A | equal to cubic time at |
+|---|---|---|
+| Hybrid, long turns | 5.6% (SS90F) | 0.89 A |
+| Hybrid, short turns | 3.5% | 0.93 A |
+| Sinusoid | 3.1% | 0.94 A |
+
+The hybrid stays ahead if its longer time at the limit costs less
+reliability than an 11% cut in A. D5's knee is steep (SS90F 55 to 60 m/s/s,
++9%, about 85% to 40% success, from recollection), so a small cut in A
+recovers a lot of reliability. This favours the hybrid but is not measured.
+
+Pairing by tier may pay:
+- 95% / 85% tier: A well below the knee, exposure hardly matters. Hybrid or
+  sinusoid takes the full 3-6%.
+- Hail mary: A at the knee, exposure matters most. Profiles with brief peaks
+  (cubic, sinusoid) may beat the hybrid. Untested.
+- Only turns near their limit matter. A per-tier, per-turn table of A and
+  blend extends the firmware's existing acceleration-indexed tables.
+
+### Margin metric
+
+- Direct: measure p(A) on the robot per profile and turn (n runs per A
+  step); read A at 95/80/50% and convert to time. No tyre model needed.
+- App proxy: peak combined load plus exposure (time or distance above, say,
+  90% of peak). Ranks profiles; needs robot data to calibrate.
+
+### Unresolved
+
+1. Slip by profile: exit slip, residual drift and compensation sensitivity,
+   especially short turns linked by short straights. Only the cubic has
+   empirical compensation (D5).
+2. Peak vs sustained load: the cubic peaks briefly at entry, the hybrid
+   holds the peak for 20-30 ms. Same peak proven, holding it not.
+3. Radius of gyration k: decides whether alpha or centripetal load governs
+   the short turns.
+4. Constant speed and a single (cubic default) footprint assumed.
+5. How reliability falls with exposure vs peak load: unknown; needs robot
+   data.
+
+### Next tests
+
+1. SS90F only: cubic at 50 / 55 / 60 m/s/s vs hybrid at about 0.85-0.95 of
+   each, 10-20 runs per point. If the hybrid at 0.92 A is as reliable as
+   the cubic at A, it wins at every tier.
+2. Sinusoid at share 0.72 at the cubic's peaks, as the low-risk step.
+3. Add the exposure proxy to the app; compare slip behaviour across
+   profiles.
+4. Measure k.
+
+The sections below are the supporting evidence.
 
 ## Context
 

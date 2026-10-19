@@ -40,39 +40,39 @@ class QVBoxLayout;
  * paramLayout between the acceleration row and the offset row.
  */
 struct MainWindowUi {
-    QLabel *lblDataView;       ///< title above the graph
-    QCustomPlot *customPlot;   ///< omega and speed against time
-    QLabel *lblPathView;       ///< mouse state at the slider position
-    QGraphicsView *pathView;   ///< maze, breadcrumbs and mouse
-    QSlider *progressSlider;   ///< position along the turn, in track records
+  QLabel *lblDataView;      ///< title above the graph
+  QCustomPlot *customPlot;  ///< omega and speed against time
+  QLabel *lblPathView;      ///< mouse state at the slider position
+  QGraphicsView *pathView;  ///< maze, breadcrumbs and mouse
+  QSlider *progressSlider;  ///< position along the turn, in track records
 
-    QTextEdit *textEdit;       ///< turn summary, read only
+  QTextEdit *textEdit;  ///< turn summary, read only
 
-    QGroupBox *gbSpinners;     ///< Parameters box
-    QFormLayout *paramLayout;  ///< rows: speed, acc, profile params, offset, sensors, slip gradient, load
-    QSpinBox *turnSpeedSpinBox;
-    QSpinBox *accelerationSpinBox;
-    QSpinBox *offsetSpinBox;
-    QSpinBox *sensorAngleSpinBox;
-    QDoubleSpinBox *slipGradientSpinBox;  ///< tyre slip angle per g, deg/g; 0 = no slip; all profiles
-    QDoubleSpinBox *loadFactorSpinBox;    ///< tyre normal load / weight; 1 = no fan; all profiles
+  QGroupBox *gbSpinners;     ///< Parameters box
+  QFormLayout *paramLayout;  ///< rows: speed, acc, profile params, offset, sensors, slip gradient, load
+  QSpinBox *turnSpeedSpinBox;
+  QSpinBox *accelerationSpinBox;
+  QSpinBox *offsetSpinBox;
+  QSpinBox *sensorAngleSpinBox;
+  QDoubleSpinBox *slipGradientSpinBox;  ///< tyre slip angle per g, deg/g; 0 = no slip; all profiles
+  QDoubleSpinBox *loadFactorSpinBox;    ///< tyre normal load / weight; 1 = no fan; all profiles
 
-    QGroupBox *gbTurnType;     ///< Turn Type box
-    std::array<QRadioButton *, TURN_TYPE_COUNT> turnButtons;  ///< indexed by Turn_t
+  QGroupBox *gbTurnType;                                    ///< Turn Type box
+  std::array<QRadioButton *, TURN_TYPE_COUNT> turnButtons;  ///< indexed by Turn_t
 
-    QGroupBox *gbTurnProfile;  ///< Turn Profile box
-    QVBoxLayout *profileLayout;
+  QGroupBox *gbTurnProfile;  ///< Turn Profile box
+  QVBoxLayout *profileLayout;
 
-    QSpinBox *startXSpinBox;
-    QSpinBox *startYSpinBox;
-    QPushButton *btnAutoScale;  ///< checkable: auto-scaled graph axes when checked
-    QPushButton *btnReset;
+  QSpinBox *startXSpinBox;
+  QSpinBox *startYSpinBox;
+  QPushButton *btnAutoScale;  ///< checkable: auto-scaled graph axes when checked
+  QPushButton *btnReset;
 
-    /**
-     * @brief Create the widgets and layouts as the window's central widget.
-     * @param window the main window; becomes the owner of everything created
-     */
-    void setupUi(QMainWindow *window);
+  /**
+   * @brief Create the widgets and layouts as the window's central widget.
+   * @param window the main window; becomes the owner of everything created
+   */
+  void setupUi(QMainWindow *window);
 };
 
 #endif  // MAIN_WINDOW_UI_H
