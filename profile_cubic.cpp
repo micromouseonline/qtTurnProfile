@@ -3,8 +3,8 @@
  * @brief Cubic spiral turn profile.
  */
 
-#include "turn_profile.h"
 #include <cmath>
+#include "turn_profile.h"
 
 namespace {
 
@@ -41,89 +41,87 @@ namespace {
  * Speed is constant throughout the turn.
  ***/
 class CubicProfile : public TurnProfile {
-public:
-    enum { LENGTH = 0 };
+ public:
+  enum { LENGTH = 0 };
 
-    std::string name() const override { return "Cubic Spiral"; }
+  std::string name() const override { return "Cubic Spiral"; }
 
-    std::string description() const override { return "Curvature varies smoothly along the whole turn, no phases"; }
+  std::string description() const override { return "Curvature varies smoothly along the whole turn, no phases"; }
 
-    std::vector<ParamDef> params() const override {
-        return {
-                {"length", "Length", "mm", 50, 500, 1, 0},
-        };
+  std::vector<ParamDef> params() const override {
+    return {
+        {"length", "Length", "mm", 50, 500, 1, 0},
+    };
+  }
+
+  /**
+   * Speeds give a peak centripetal acceleration of 9800 mm/s/s at the
+   * minimum radius, length / (1.5 * angle in radians).
+   */
+  TurnDefaults defaults(Turn_t turn) const override {
+    // offset, speed, {length}
+    static const TurnDefaults table[TURN_TYPE_COUNT] = {
+        {150, 1016, {246}},  // SS90F
+        {160, 877, {370}},   // SS180
+        {160, 1056, {134}},  // SD45
+        {150, 859, {266}},   // SD135
+        {75, 1094, {142}},   // DS45
+        {105, 844, {257}},   // DS135
+        {105, 848, {173}},   // DD90
+        {75, 718, {123}},    // SS90E
+    };
+    return table[turn];
+  }
+
+  void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values, Track &track) const override {
+    float turnSpeed = speed;
+    float turnAngle = setup.turn_angle;
+    float startAngle = setup.start_angle;
+
+    float length = values[LENGTH];
+    // k is the constant used to obtain the curvature of the path
+    float k = 6.0f * (turnAngle) / (length * length * length);
+
+    track.clear();
+    RobotState robot_state(setup.start_x, setup.start_y, startAngle, turnSpeed, setup.interval);
+    robot_state.set_slip(setup.slip);
+    track.add_record(robot_state);
+    // perform the turn;
+    // unlike the other turn types, the cubic spiral is based on distance
+    // rather than the turn angle.
+    // TODO: is this a problem if there is wheel slip?
+    while (robot_state.distance < length) {
+      float frac = robot_state.distance / length;
+      float omega = robot_state.speed * k * robot_state.distance * (length - robot_state.distance);
+      robot_state.omega = omega;
+      if (frac < 0.5) {
+        robot_state.phase = 1;
+      } else {
+        robot_state.phase = 3;
+      }
+      robot_state.update();
+      track.add_record(robot_state);
     }
+    track.set_turn_end();
+    simulate_leadout(robot_state, setup.leadout, track);
+  }
 
-    /**
-     * Speeds give a peak centripetal acceleration of 9800 mm/s/s at the
-     * minimum radius, length / (1.5 * angle in radians).
-     */
-    TurnDefaults defaults(Turn_t turn) const override {
-        // offset, speed, {length}
-        static const TurnDefaults table[TURN_TYPE_COUNT] = {
-            {150, 1016, {248}},  // SS90F
-            {160, 877, {370}},  // SS180
-            {160, 1056, {134}},  // SD45
-            {150, 859, {266}},  // SD135
-            {75, 1094, {144}},  // DS45
-            {105, 844, {257}},  // DS135
-            {105, 848, {173}},  // DD90
-            {75, 718, {124}},  // SS90E
-        };
-        return table[turn];
-    }
+  /// Curvature is (6 * angle / L) * f(1 - f), f = s / L, largest at mid turn: a = v^2 * 1.5 * angle / L
+  float peak_acceleration(const TurnSetup &setup, float speed, const std::vector<float> &values) const override {
+    float angle = radians(setup.turn_angle);
+    return speed * speed * 1.5f * angle / values[LENGTH];
+  }
 
-    void simulate(const TurnSetup &setup, float speed, const std::vector<float> &values,
-                  Track &track) const override {
-        float turnSpeed = speed;
-        float turnAngle = setup.turn_angle;
-        float startAngle = setup.start_angle;
-
-        float length = values[LENGTH];
-        // k is the constant used to obtain the curvature of the path
-        float k = 6.0f * (turnAngle) / (length * length * length);
-
-        track.clear();
-        RobotState robot_state(setup.start_x, setup.start_y, startAngle, turnSpeed, setup.interval);
-        robot_state.set_slip(setup.slip);
-        track.add_record(robot_state);
-        // perform the turn;
-        // unlike the other turn types, the cubic spiral is based on distance
-        // rather than the turn angle.
-        // TODO: is this a problem if there is wheel slip?
-        while (robot_state.distance < length) {
-            float frac = robot_state.distance / length;
-            float omega = robot_state.speed * k * robot_state.distance * (length - robot_state.distance);
-            robot_state.omega = omega;
-            if (frac < 0.5) {
-                robot_state.phase = 1;
-            } else {
-                robot_state.phase = 3;
-            }
-            robot_state.update();
-            track.add_record(robot_state);
-        }
-        track.set_turn_end();
-        simulate_leadout(robot_state, setup.leadout, track);
-    }
-
-    /// Curvature is (6 * angle / L) * f(1 - f), f = s / L, largest at mid turn: a = v^2 * 1.5 * angle / L
-    float peak_acceleration(const TurnSetup &setup, float speed, const std::vector<float> &values) const override {
-        float angle = radians(setup.turn_angle);
-        return speed * speed * 1.5f * angle / values[LENGTH];
-    }
-
-    float speed_for_acceleration(const TurnSetup &setup, float acceleration,
-                                 const std::vector<float> &values) const override {
-        float angle = radians(setup.turn_angle);
-        return std::sqrt(acceleration * values[LENGTH] / (1.5f * angle));
-    }
+  float speed_for_acceleration(const TurnSetup &setup, float acceleration, const std::vector<float> &values) const override {
+    float angle = radians(setup.turn_angle);
+    return std::sqrt(acceleration * values[LENGTH] / (1.5f * angle));
+  }
 };
 
 }  // namespace
 
 /// The single cubic spiral profile instance, for the registry
 const TurnProfile &cubic_profile() {
-    static const CubicProfile profile;
-    return profile;
+  static const CubicProfile profile;
+  return profile;
 }
