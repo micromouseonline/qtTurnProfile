@@ -59,6 +59,10 @@ private:
     /// Working values, indexed [profile][turn]. Edits persist until reset;
     /// profiles are independent of each other.
     std::vector<std::array<TurnValues, TURN_TYPE_COUNT>> stored;
+    /// Which of speed or acceleration the user last set; held across profile and turn changes
+    enum class Hold { None, Speed, Acceleration };
+    Hold hold = Hold::None;  ///< cleared by reset; None means each turn uses its stored speed
+    float holdValue = 0;     ///< held speed (mm/s) or acceleration (mm/s/s), per hold
     Track track;  ///< the simulated turn and leadout
     Track idealTrack;  ///< the same turn without slip; a copy of track when slip is off
     QCPAxis *slipAxis;   ///< slip angle axis, in the plot above the speed plot
@@ -93,6 +97,10 @@ private:
     const TurnValues &params() const { return stored[turnProfile][turn]; }
 
     void setParams(int turn_index);
+
+    void loadDefaults();
+
+    void applyHold();
 
     void drawMazeWalls();
 

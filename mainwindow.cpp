@@ -48,14 +48,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new MainWindow
 
     buildRowLabels();
 
-    // every profile starts from its own defaults
-    stored.resize(profile_registry().size());
-    for (size_t p = 0; p < stored.size(); p++) {
-        for (int t = 0; t < TURN_TYPE_COUNT; t++) {
-            TurnDefaults d = profile_registry()[p]->defaults(Turn_t(t));
-            stored[p][t] = {d.offset, d.speed, d.values};
-        }
-    }
+    loadDefaults();
 
     theMouse = new MouseItem;
     theMouse->setSensorAngle(ui->sensorAngleSpinBox->value());
@@ -338,12 +331,49 @@ void MainWindow::drawBreadcrumbs() {
     }
 }
 
-/// Restore the profile defaults for the current turn and repaint
+/// Restore the defaults for every profile and turn, release the held speed or acceleration and repaint
 void MainWindow::resetTurn() {
-    TurnDefaults d = profile().defaults(turn);
-    params() = {d.offset, d.speed, d.values};
+    loadDefaults();
     setParams(turn);
     rePaint();
+}
+
+/**
+ * @brief Set every profile and turn to its profile defaults and clear the hold.
+ *
+ * Does not update the spinboxes; the caller calls setParams().
+ */
+void MainWindow::loadDefaults() {
+    stored.assign(profile_registry().size(), {});
+    for (size_t p = 0; p < stored.size(); p++) {
+        for (int t = 0; t < TURN_TYPE_COUNT; t++) {
+            TurnDefaults d = profile_registry()[p]->defaults(Turn_t(t));
+            stored[p][t] = {d.offset, d.speed, d.values};
+        }
+    }
+    hold = Hold::None;
+}
+
+/**
+ * @brief Set the current turn's speed from the held speed or acceleration.
+ *
+ * A held acceleration is converted with speedForAcceleration() for the current
+ * profile, turn and parameters. The result is limited to the speed box range
+ * and stored in params(). Does nothing when nothing is held.
+ */
+void MainWindow::applyHold() {
+    float speed;
+    switch (hold) {
+        case Hold::Speed:
+            speed = holdValue;
+            break;
+        case Hold::Acceleration:
+            speed = speedForAcceleration(holdValue);
+            break;
+        default:
+            return;
+    }
+    params().speed = qBound(float(ui->turnSpeedSpinBox->minimum()), speed, float(ui->turnSpeedSpinBox->maximum()));
 }
 
 /**
@@ -410,12 +440,15 @@ void MainWindow::drawMazeWalls() {
  * @brief The acceleration box changed: derive the speed from it and repaint.
  *
  * If the speed box range clamps the derived speed, the clamped speed is
- * stored and the acceleration box is corrected to match it.
+ * stored and the acceleration box is corrected to match it. The acceleration
+ * is held for other profiles and turns until reset.
  *
  * @param acceleration peak centripetal acceleration, mm/s/s
  */
 void MainWindow::accelerationChanged(int acceleration) {
     float turnAcceleration = acceleration;
+    hold = Hold::Acceleration;
+    holdValue = turnAcceleration;
     float turnSpeed = speedForAcceleration(turnAcceleration);
     params().speed = turnSpeed;
     ui->turnSpeedSpinBox->blockSignals(true);
@@ -430,10 +463,15 @@ void MainWindow::accelerationChanged(int acceleration) {
 
 /**
  * @brief The speed box changed: store it, update the acceleration box and repaint.
+ *
+ * The speed is held for other profiles and turns until reset.
+ *
  * @param speed turn speed, mm/s
  */
 void MainWindow::speedChanged(int speed) {
     float turnSpeed = speed;
+    hold = Hold::Speed;
+    holdValue = turnSpeed;
     params().speed = turnSpeed;
     updateAccelerationBox();
     rePaint();
@@ -480,6 +518,7 @@ void MainWindow::sensorAngleChanged(int angle) {
 /**
  * @brief Load the stored parameters for a turn into the spinboxes.
  *
+ * A held speed or acceleration (see applyHold()) replaces the stored speed first.
  * Signals are blocked while loading so the handlers do not repaint once per
  * value; their side effects (acceleration and start position) are done once
  * at the end. Does not repaint: the caller calls rePaint() once.
@@ -488,7 +527,9 @@ void MainWindow::sensorAngleChanged(int angle) {
  *        spinboxes must already be built for the current profile
  */
 void MainWindow::setParams(int turn_index) {
-    const TurnValues &v = stored[turnProfile][turn_index];
+    turn = Turn_t(turn_index);
+    applyHold();
+    const TurnValues &v = params();
     std::vector<QAbstractSpinBox *> boxes = {ui->offsetSpinBox, ui->turnSpeedSpinBox};
     boxes.insert(boxes.end(), paramBoxes.begin(), paramBoxes.end());
     for (QAbstractSpinBox *box : boxes) {
@@ -664,11 +705,24 @@ void MainWindow::buildParamRows() {
 
 /**
  * @brief A profile parameter spinbox changed: store it and repaint.
+ *
+ * With an acceleration held, the speed is recalculated so the peak
+ * acceleration stays the same (within the speed box range); otherwise the
+ * speed stays and the acceleration box is updated. Constraints are applied
+ * first so the speed is derived from the values actually simulated.
+ *
  * @param index parameter index in TurnProfile::params()
  * @param value new value
  */
 void MainWindow::paramChanged(int index, double value) {
     params().values[index] = value;
+    constrainParams();
+    if (hold == Hold::Acceleration) {
+        applyHold();
+        ui->turnSpeedSpinBox->blockSignals(true);
+        ui->turnSpeedSpinBox->setValue(qRound(params().speed));
+        ui->turnSpeedSpinBox->blockSignals(false);
+    }
     updateAccelerationBox();
     rePaint();
 }
