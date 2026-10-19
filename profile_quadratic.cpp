@@ -69,16 +69,22 @@ public:
     }
 
 protected:
-    float transition_angle(float lambda, float turn_omega, float speed) const override {
+    float transition_angle(float lambda, float turn_omega, float speed,
+                           const std::vector<float> &values) const override {
+        (void) values;
         return lambda * 2 * turn_omega / (speed * 3);
     }
 
-    float ramp(float turn_omega, float x, float lambda) const override {
+    float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const override {
+        (void) values;
         float t = x / lambda;
         return float(turn_omega * t * (2.0 - t));
     }
 
-    float lambda_limit() const override { return 0.75f; }
+    float lambda_limit(const std::vector<float> &values) const override {
+        (void) values;
+        return 0.75f;
+    }
 };
 
 }  // namespace

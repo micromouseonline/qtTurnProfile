@@ -12,6 +12,7 @@ const TurnProfile &sinusoid_profile();
 const TurnProfile &trapezoid_profile();
 const TurnProfile &cubic_profile();
 const TurnProfile &quadratic_profile();
+const TurnProfile &hybrid_profile();
 
 const std::vector<const TurnProfile *> &profile_registry() {
     static const std::vector<const TurnProfile *> profiles = {
@@ -19,6 +20,7 @@ const std::vector<const TurnProfile *> &profile_registry() {
             &trapezoid_profile(),
             &cubic_profile(),
             &quadratic_profile(),
+            &hybrid_profile(),
     };
     return profiles;
 }

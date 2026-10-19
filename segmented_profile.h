@@ -15,7 +15,8 @@
  * phase 2 holds it, phase 3 mirrors phase 1. Phases switch on the heading
  * reached. Subclasses define the transition shape.
  *
- * Parameters: radius (index 0) and lambda (index 1).
+ * Parameters: radius (index 0) and lambda (index 1). A subclass may add
+ * shape parameters after these; the transition hooks receive all values.
  */
 class SegmentedProfile : public TurnProfile {
 public:
@@ -44,21 +45,23 @@ public:
      * in the turn angle, so lambda <= angle * radius / (2k). A larger lambda
      * makes phase 3 overrun and the turn falls short.
      *
-     * @param radius arc radius, mm
+     * @param values parameter values (radius, lambda, any shape parameters);
+     *        lambda itself is not used
      * @param turn_angle total turn angle, degrees
      * @return maximum lambda, mm
      */
-    float max_lambda(float radius, float turn_angle) const;
+    float max_lambda(const std::vector<float> &values, float turn_angle) const;
 
 protected:
     /// Angle turned in one transition, degrees, for lambda, arc omega (deg/s) and speed
-    virtual float transition_angle(float lambda, float turn_omega, float speed) const = 0;
+    virtual float transition_angle(float lambda, float turn_omega, float speed,
+                                   const std::vector<float> &values) const = 0;
 
     /// Omega at distance x from the zero-omega end of a transition
-    virtual float ramp(float turn_omega, float x, float lambda) const = 0;
+    virtual float ramp(float turn_omega, float x, float lambda, const std::vector<float> &values) const = 0;
 
     /// 1 / (2k): max_lambda() = lambda_limit() * angle in radians * radius
-    virtual float lambda_limit() const = 0;
+    virtual float lambda_limit(const std::vector<float> &values) const = 0;
 
     /// The turn ends when theta is within this many degrees of the end angle
     virtual double tolerance() const { return 0.01; }

@@ -25,7 +25,7 @@ void SegmentedProfile::simulate(const TurnSetup &setup, float speed, const std::
     float endAngle = startAngle + turnAngle;
     float turnOmega = degrees(turnSpeed / turnRadius);
 
-    float transitionAngle = transition_angle(lambda, turnOmega, turnSpeed);
+    float transitionAngle = transition_angle(lambda, turnOmega, turnSpeed, values);
     // angle turned during the constant omega phase
     float theta2 = turnAngle - 2 * transitionAngle;
     float midArcLength = turnSpeed * theta2 / turnOmega;
@@ -46,13 +46,13 @@ void SegmentedProfile::simulate(const TurnSetup &setup, float speed, const std::
     // beyond turnDistance omega goes negative and the loop would never finish
     while (robot_state.theta < endAngle - tolerance() && robot_state.distance < turnDistance) {
         if (robot_state.theta < startAngle + transitionAngle) {
-            robot_state.omega = ramp(turnOmega, robot_state.distance, lambda);
+            robot_state.omega = ramp(turnOmega, robot_state.distance, lambda, values);
             robot_state.phase = 1;
         } else if (robot_state.theta < (endAngle - transitionAngle)) {
             robot_state.omega = turnOmega;
             robot_state.phase = 2;
         } else {
-            robot_state.omega = ramp(turnOmega, turnDistance - robot_state.distance, lambda);
+            robot_state.omega = ramp(turnOmega, turnDistance - robot_state.distance, lambda, values);
             robot_state.phase = 3;
         }
         robot_state.update();
@@ -74,13 +74,13 @@ float SegmentedProfile::speed_for_acceleration(const TurnSetup &setup, float acc
     return std::sqrt(acceleration * values[RADIUS]);
 }
 
-float SegmentedProfile::max_lambda(float radius, float turn_angle) const {
+float SegmentedProfile::max_lambda(const std::vector<float> &values, float turn_angle) const {
     float angle = radians(turn_angle);
-    return lambda_limit() * angle * radius;
+    return lambda_limit(values) * angle * values[RADIUS];
 }
 
 bool SegmentedProfile::constrain(const TurnSetup &setup, std::vector<float> &values) const {
-    int limit = int(max_lambda(values[RADIUS], setup.turn_angle));
+    int limit = int(max_lambda(values, setup.turn_angle));
     if (values[LAMBDA] > limit) {
         values[LAMBDA] = limit;
         return true;
@@ -89,5 +89,5 @@ bool SegmentedProfile::constrain(const TurnSetup &setup, std::vector<float> &val
 }
 
 std::vector<SummaryLine> SegmentedProfile::summary(const TurnSetup &setup, const std::vector<float> &values) const {
-    return {{"Lambda Max", double(int(max_lambda(values[RADIUS], setup.turn_angle))), 0, "mm"}};
+    return {{"Lambda Max", double(int(max_lambda(values, setup.turn_angle))), 0, "mm"}};
 }

@@ -32,6 +32,7 @@ set(PHYSICS_SOURCES
         profile_trapezoid.cpp
         profile_cubic.cpp
         profile_quadratic.cpp
+        profile_hybrid.cpp
         )
 
 set(SOURCE_FILES
