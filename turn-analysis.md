@@ -54,8 +54,6 @@ Footprint 150 mm (start 150 mm before the corner, exit on the exit line).
 | Sinusoid | 0.50 | 121 mm | 2584 | 94.4 ms | +15.0% | 4.35 g | 5.61 g |
 | Sinusoid | 0.75 | 110 mm | 2464 | 99.9 ms | +21.7% | 3.19 g | 5.61 g |
 | Sinusoid | 1.00 | 101 mm | 2356 | 105.1 ms | +28.0% | 2.62 g | 5.61 g |
-| Quadratic | 0.50 | 124 mm | 2615 | 93.0 ms | +13.3% | 5.66 g | 5.66 g |
-| Quadratic | 1.00 | 105 mm | 2405 | 102.5 ms | +24.8% | 3.35 g | 5.61 g |
 | Trapezoid | 0.50 | 106 mm | 2413 | 101.2 ms | +23.3% | 2.50 g | 6.15 g |
 | Trapezoid | 1.00 | 80 mm | 2100 | 117.2 ms | +42.8% | 2.75 g | 6.24 g |
 | Cubic | - | 105 mm | 2405 | 103.1 ms | +25.6% | 3.35 g | 5.61 g |
@@ -81,8 +79,6 @@ default. Speeds in mm/s, times in ms.
 | SS90E | 1701 | 73.0 | 1753 | 70.7 | 3.1% | 6.68 / 6.57 | 6.68 / 6.57 |
 
 Other profiles:
-- Quadratic: best share is 1.00 in every turn, identical to the cubic. The
-  cubic's omega ~ s * (L - s) is the quadratic ramp with no constant arc.
 - Trapezoid: no share fits within the cubic's limits, except SS90E (share
   0.84, 11.6% slower). Its angular acceleration steps add to the tyre load at
   the ramp corners.
@@ -138,7 +134,6 @@ At every level:
 - sinusoid best share 0.72 for all turns (one turn at 1 g came out 0.70,
   from simulation step effects at low speed)
 - time saved 3.0-3.5%, speed 2.6-3.1% higher (3.5% for one turn at 1 g)
-- quadratic best share 1.00 (identical to the cubic)
 - trapezoid fits within the cubic's limits in 1 of 8 turns
 - in the short turns (45 deg, SS90E) the transition load stays at a fixed
   ratio to the centripetal peak (about 1.03-1.2)
@@ -170,7 +165,7 @@ governs the short turns.
 ### Angular acceleration at the ends
 
 The app's "Sinusoid" is a quarter sine, omega = W * sin((pi/2) * x / lambda),
-not a raised cosine. It, the quadratic and the cubic all have a nonzero slope
+not a raised cosine. It and the cubic both have a nonzero slope
 of omega at x = 0, so angular acceleration steps at turn entry (and exit). For
 the cubic, omega ~ s * (L - s) has slope L at s = 0. They are smooth only into
 the arc (or, for the cubic, at mid turn). Practical cubic runs show that steps

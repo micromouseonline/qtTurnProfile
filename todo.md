@@ -31,11 +31,9 @@ Commit after each verified step.
 - [x] 1.5 Infinite loop when lambda too large for radius/angle (was: lambda = 0 NaN)
   - Lambda = 0 tested: harmless, gives a pure arc. Original claim wrong.
   - Cause: 2 * transition angle > turn angle -> negative mid arc, phase 3 overruns,
-    omega goes negative, theta never reaches end -> hang. Quadratic SD45 defaults
-    hung (pre-existing). Very small radius hung quadratic via step-size error.
+    omega goes negative, theta never reaches end -> hang.
   - Fix: lambda clamped to max (spinbox + stored value), "Lambda Max" in summary;
-    quadratic has own defaults table (SD45 lambda 60); turn loops also end at
-    turnDistance.
+    turn loops also end at turnDistance.
   - Tested: all 3 profiles x 8 turns at defaults, lambda 200, radius 15; defaults and
     lambda 200 results unchanged by the distance limit.
 
@@ -86,8 +84,8 @@ Commit after each verified step.
 
 - [x] 3.3 Move turn physics out of `MainWindow`
   - Plain C++ module (no Qt): input params struct -> `Track`.
-  - Share common setup between trapezoid, quadratic and sine (only the omega
-    transition function differs).
+  - Share common setup between trapezoid and sine (only the omega transition
+    function differs).
   - Test: summary values identical to pre-refactor for each turn/profile
     (record a reference table first).
   - Done: `turn_physics.h/.cpp` (no Qt). `simulate_turn(profile, TurnInput, Track&)`,
@@ -218,7 +216,7 @@ Commit after each verified step.
     count unchanged, peak <= settled value (>= 90% at defaults), never inside start line, slip gone by
     leadout end, exit outward. SS90F sinusoid default at 20 deg/g: max 19.0 deg, end (-33.6, -43.3) mm.
 
-- [ ] 7.2 Rework phase calculation for segmented turns (trapezoid, quadratic, sinusoid)
+- [ ] 7.2 Rework phase calculation for segmented turns (trapezoid, sinusoid)
   - Phases currently switch on theta, which lags by a step; turn loops also stop at turnDistance (1.5).
   - Known effect: trapezoid phase 1 ramp overshoots turn omega, simulated peak
     centripetal acceleration up to 0.6% above analytic value (e.g. DS45 9864 vs 9802).
