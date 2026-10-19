@@ -9,6 +9,27 @@ factor. Each turn is then simulated with and without slip, and the path error at
 the end of the leadout is reported, so entry and exit position adjustments can be
 estimated for each turn.
 
+## Project layout
+
+| folder | contents |
+|---|---|
+| `src/physics/` | turn physics and profiles, no Qt; shared by the app and the tests |
+| `src/robot/` | robot angular profiles, written to run unchanged in the firmware |
+| `src/ui/` | Qt user interface |
+| `third_party/qcustomplot/` | plotting widget (vendor code, not reformatted) |
+| `tests/` | unit tests and baseline regression |
+| `assets/` | icon and Qt resource file |
+| `packaging/` | Linux desktop entry and uninstall script templates |
+| `docs/` | analysis and design notes |
+
+## Documents
+
+- `docs/turn-analysis.md`: comparison of the turn profiles and recommendation
+- `docs/turn-execution.md`: how the profiles are parameterised and run on the robot
+- `docs/residual-slip-compensation.md`: slip model and notes for simulating turn sequences with slip
+- `docs/d5-slip-compensation.md`: D5 empirical slip table vs the app slip model
+- `docs/todo.md`: work list
+
 ## Requirements
 
 - Qt 6 (Core, Gui, Widgets, PrintSupport). Tested with Qt 6.10.2

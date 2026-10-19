@@ -7,11 +7,11 @@ in the 1 kHz control loop. The app runs the same profile code as the robot.
 
 | file | role |
 |---|---|
-| `robot/velocity_profile.h` | copy of firmware `vehicle/planner/velocityprofile.h`; keep in sync |
-| `robot/cubic_profile.h` | firmware `CubicProfile`, plus optional exact angle mode |
-| `robot/hybrid_turn_profile.h` | `HybridTurnProfile`: hybrid and sinusoid (blend 0) |
-| `robot/robot_compat.h` | app stand-in for firmware `interfaces/isr.h`, `utils/core.h` |
-| `robot_sim.cpp` | app loop: per tick `update(speed)`, apply `getVelocity()`, as `MotionDirector` |
+| `src/robot/velocity_profile.h` | copy of firmware `vehicle/planner/velocityprofile.h`; keep in sync |
+| `src/robot/cubic_profile.h` | firmware `CubicProfile`, plus optional exact angle mode |
+| `src/robot/hybrid_turn_profile.h` | `HybridTurnProfile`: hybrid and sinusoid (blend 0) |
+| `src/robot/robot_compat.h` | app stand-in for firmware `interfaces/isr.h`, `utils/core.h` |
+| `src/physics/robot_sim.cpp` | app loop: per tick `update(speed)`, apply `getVelocity()`, as `MotionDirector` |
 
 To port: copy the two profile headers and replace the `robot_compat.h`
 include with the firmware includes. Nothing else differs.

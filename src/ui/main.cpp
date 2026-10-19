@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     QApplication::setStyle("Fusion");
   }
 #endif
-  a.setWindowIcon(QIcon(":/images/qtTurnProfiler.png"));
+  a.setWindowIcon(QIcon(":/assets/qtTurnProfiler.png"));
   QApplication::setQuitOnLastWindowClosed(true);
   MainWindow w;
   // find the screen that holds the current mouse pointer

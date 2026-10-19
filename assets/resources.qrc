@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/assets">
+        <file>qtTurnProfiler.png</file>
+    </qresource>
+</RCC>

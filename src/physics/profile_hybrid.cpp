@@ -21,7 +21,7 @@ namespace {
  * the combined tyre load (centripetal plus wheel acceleration) constant;
  * the linear part keeps the wheel acceleration at its peak. With both at
  * their limits this is the fastest transition for given peak centripetal
- * acceleration, wheel acceleration and combined load (see turn-analysis.md).
+ * acceleration, wheel acceleration and combined load (see docs/turn-analysis.md).
  *
  * Parameters:
  *  - radius: constant arc radius, mm
@@ -61,7 +61,7 @@ class HybridProfile : public SegmentedProfile {
    * Fitted to the same footprint as the cubic defaults (same offset, exit on
    * the cubic's exit line): blend and lambda give the shortest time with
    * peak wheel acceleration and combined load no higher than the cubic's
-   * (see turn-analysis.md). Speeds give a peak centripetal acceleration of
+   * (see docs/turn-analysis.md). Speeds give a peak centripetal acceleration of
    * 9800 mm/s/s: speed = sqrt(9800 * radius), rounded to the nearest mm/s.
    */
   TurnDefaults defaults(Turn_t turn) const override {

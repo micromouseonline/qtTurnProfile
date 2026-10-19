@@ -18,48 +18,62 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # turn physics, no Qt: shared by the app and the unit tests
 set(PHYSICS_SOURCES
-        pose.h
-        track.h
-        track.cpp
-        robotstate.h
-        angles.h
-        turn_profile.h
-        turn_profile.cpp
-        segmented_profile.h
-        segmented_profile.cpp
-        profile_registry.cpp
-        profile_sinusoid.cpp
-        profile_trapezoid.cpp
-        profile_cubic.cpp
-        profile_hybrid.cpp
-        robot_sim.h
-        robot_sim.cpp
-        robot/velocity_profile.h
-        robot/robot_compat.h
-        robot/cubic_profile.h
-        robot/hybrid_turn_profile.h
+        src/physics/pose.h
+        src/physics/track.h
+        src/physics/track.cpp
+        src/physics/robotstate.h
+        src/physics/angles.h
+        src/physics/turn_profile.h
+        src/physics/turn_profile.cpp
+        src/physics/segmented_profile.h
+        src/physics/segmented_profile.cpp
+        src/physics/profile_registry.cpp
+        src/physics/profile_sinusoid.cpp
+        src/physics/profile_trapezoid.cpp
+        src/physics/profile_cubic.cpp
+        src/physics/profile_hybrid.cpp
+        src/physics/robot_sim.h
+        src/physics/robot_sim.cpp
+        src/robot/velocity_profile.h
+        src/robot/robot_compat.h
+        src/robot/cubic_profile.h
+        src/robot/hybrid_turn_profile.h
         )
+# physics headers by name; robot profiles as "robot/<name>.h"
+set(PHYSICS_INCLUDE_DIRS src src/physics)
+
+# vendor plotting widget; not reformatted (third_party/.clang-format)
+set(QCUSTOMPLOT_SOURCES
+        third_party/qcustomplot/qcustomplot.cpp
+        third_party/qcustomplot/qcustomplot.h
+        )
+# deprecated Qt calls inside qcustomplot: not ours to fix
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set_source_files_properties(third_party/qcustomplot/qcustomplot.cpp
+            PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
+endif ()
 
 set(SOURCE_FILES
         ${PHYSICS_SOURCES}
-        main_window_ui.h
-        main_window_ui.cpp
-        mouseitem.cpp
-        mouseitem.h
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        qcustomplot.cpp
-        qcustomplot.h
-        resources.qrc
+        ${QCUSTOMPLOT_SOURCES}
+        src/ui/main_window_ui.h
+        src/ui/main_window_ui.cpp
+        src/ui/mouseitem.cpp
+        src/ui/mouseitem.h
+        src/ui/main.cpp
+        src/ui/mainwindow.cpp
+        src/ui/mainwindow.h
+        assets/resources.qrc
         )
 
 add_executable(qtTurnProfile ${SOURCE_FILES})
+target_include_directories(qtTurnProfile PRIVATE ${PHYSICS_INCLUDE_DIRS} src/ui third_party/qcustomplot)
 
 # unit tests and baseline regression for the physics: ctest, or
 #   turn_profile_tests tests/baseline.txt [--update]
 enable_testing()
 add_executable(turn_profile_tests tests/turn_profile_tests.cpp ${PHYSICS_SOURCES})
+target_include_directories(turn_profile_tests PRIVATE ${PHYSICS_INCLUDE_DIRS})
 set_target_properties(turn_profile_tests PROPERTIES AUTOMOC OFF AUTORCC OFF)
 add_test(NAME turn_profile_tests
         COMMAND turn_profile_tests ${CMAKE_SOURCE_DIR}/tests/baseline.txt)
@@ -100,8 +114,8 @@ elseif (UNIX)
     set(DEPLOY_APPS_DIR "$ENV{HOME}/.local/share/applications")
     set(DEPLOY_ICON "${DEPLOY_DATA_DIR}/${PROJECT_NAME}.png")
     set(DEPLOY_UNINSTALL "${DEPLOY_BIN_DIR}/${PROJECT_NAME}-uninstall")
-    configure_file(qt_turn_profile.desktop.in ${PROJECT_NAME}.desktop @ONLY)
-    configure_file(qt_turn_profile_uninstall.sh.in ${PROJECT_NAME}-uninstall @ONLY)
+    configure_file(packaging/qt_turn_profile.desktop.in ${PROJECT_NAME}.desktop @ONLY)
+    configure_file(packaging/qt_turn_profile_uninstall.sh.in ${PROJECT_NAME}-uninstall @ONLY)
     # refresh the application menu after deploying; Plasma caches entries (ksycoca)
     find_program(KBUILDSYCOCA NAMES kbuildsycoca6 kbuildsycoca5)
     if (KBUILDSYCOCA)
@@ -110,7 +124,7 @@ elseif (UNIX)
     add_custom_target(deploy
             COMMAND ${CMAKE_COMMAND} -E make_directory "${DEPLOY_BIN_DIR}" "${DEPLOY_DATA_DIR}" "${DEPLOY_APPS_DIR}"
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> "${DEPLOY_BIN_DIR}/${PROJECT_NAME}"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/images/qtTurnProfiler.png" "${DEPLOY_ICON}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/assets/qtTurnProfiler.png" "${DEPLOY_ICON}"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.desktop" "${DEPLOY_APPS_DIR}/${PROJECT_NAME}.desktop"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/${PROJECT_NAME}-uninstall" "${DEPLOY_UNINSTALL}"
             COMMAND chmod 755 "${DEPLOY_UNINSTALL}"
